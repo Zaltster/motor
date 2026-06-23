@@ -1,0 +1,21 @@
+{
+  "appId": "motor-probe",
+  "version": "0.1.0",
+  "platform": "wendyos",
+  "language": "python",
+  "entitlements": [
+    {
+      "type": "network"
+    },
+    {
+      "type": "gpio",
+      "pins": [
+        18
+      ]
+    },
+    {
+      "type": "spi"
+    }
+  ],
+  "python": {}
+}
