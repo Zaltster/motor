@@ -243,7 +243,7 @@ function App() {
   }, []);
 
   const orderedSensors = useMemo(() => {
-    return floorOrder.map((id) => sensors[id] || {
+    const ordered = floorOrder.map((id) => sensors[id] || {
       id,
       name: id,
       label: floorLabels[id],
@@ -253,6 +253,14 @@ function App() {
       samples: [],
       lastSeen: 0,
     });
+    const dynamicSensors = Object.values(sensors)
+      .filter((sensor) => !floorOrder.includes(sensor.id))
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((sensor, index) => ({
+        ...sensor,
+        label: sensor.label === sensor.name ? `BLE Floor ${index + 1}` : sensor.label,
+      }));
+    return dynamicSensors.length > 0 ? dynamicSensors.slice(0, 3) : ordered;
   }, [sensors]);
 
   async function startDemo() {
