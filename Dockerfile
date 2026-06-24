@@ -1,14 +1,24 @@
-FROM --platform=linux/arm64 python:3.12-slim-bookworm
+FROM node:22-bookworm-slim AS frontend
+
+WORKDIR /src
+
+COPY package.json package-lock.json tsconfig.json vite.config.ts ./
+COPY frontend ./frontend
+RUN npm ci && npm run build
+
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
-    SENSOR_MODE=serial \
+    SENSOR_MODE=auto \
     WIT_SERIAL_PORTS=/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2 \
     WIT_BAUD=115200
 
+RUN pip install --no-cache-dir "bleak>=0.22,<1"
+
 COPY l298n_motor.py rumble_ui.py ./
-COPY static ./static
+COPY --from=frontend /src/static ./static
 
 EXPOSE 8000
 

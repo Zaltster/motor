@@ -1,12 +1,12 @@
-# Earthquake Rumble Monitor
+# Wendy Studio Vibration Tower Earthquake Demo
 
 This project runs a Raspberry Pi 5 + L298N vibration rig from a browser UI. It
-can trigger one earthquake-style rumble and graph the shaking reported by three
-wired WIT Motion sensors on different floors.
+can run one Wendy Studio earthquake demo sequence and graph the shaking reported
+by three WIT Motion sensors on different floors.
 
-The deployed WendyOS app serves a small HTTP UI, controls the motor through
-GPIO, reads WIT serial data from USB adapters, and streams live updates to the
-browser with Server-Sent Events.
+The deployed WendyOS app serves a Vite + React + TypeScript dashboard, controls
+the motor through GPIO, reads WIT serial or BLE data, classifies floor response,
+and streams live updates to the browser with Server-Sent Events.
 
 ## Current Hardware
 
@@ -15,7 +15,29 @@ browser with Server-Sent Events.
 - Motor driver: L298N H-bridge
 - Motor supply: external supply, tested successfully at `12V`
 - Pi logic level: `3.3V`; the Pi does not power the motor
-- Sensors: three wired WIT Motion sensors through CH341 USB serial adapters
+- Target sensors: one BLE WIT Motion sensor on each floor
+- Verified fallback sensors: three wired WIT Motion sensors through CH341 USB serial adapters
+
+## Linear Project Alignment
+
+This repository implements the Wendy Studio Vibration Tower Earthquake Demo:
+
+- Three-floor tower/nightstand model with a vibration motor on the bottom layer.
+- WendyOS drives the 12 V vibration motor through the Pi + L298N GPIO path.
+- One demo run starts after a randomized delay and runs a 20 second ramping
+  earthquake sequence.
+- WendyOS streams live floor vibration data and sensor connection state.
+- The frontend is Vite, React, TypeScript, and shadcn-style components.
+- The dashboard shows live graphs for each floor, total shake, motor command
+  timeline, and per-sensor connection state.
+- The classifier exposes exactly three sensor-only states: `No motion`,
+  `Non-Earthquake motion detected`, and `Earthquake detected`.
+- The classifier does not use motor/demo state to decide whether an earthquake
+  was detected.
+
+The Wendy app is BLE-capable through the `bluetooth` entitlement and the
+`bleak` Python package. The current bench setup still keeps serial/USB
+entitlements because the verified sensors today are wired WIT adapters.
 
 Floor sensor mapping:
 
@@ -52,24 +74,42 @@ Then open:
 http://wendyos-wendy-vibration-pi5-32gb.local:8000/
 ```
 
-The `Start Earthquake` button sends one `/api/rumble` request. The backend
-chooses randomized duty chunks, drives the motor forward through the L298N, and
-publishes the commanded rumble strength to the UI.
+The `Start` button sends one `/api/demo/start` request. The backend arms the
+demo, waits a randomized delay, runs one 20 second ramping earthquake sequence,
+drives the motor forward through the L298N, and publishes the commanded rumble
+strength to the UI. `/api/rumble` remains as a compatibility alias.
 
 The UI shows:
 
-- commanded rumble strength over time
-- Total Shake, calculated by adding all active floor sensor signals together
+- demo state and commanded rumble strength over time
+- Total Shake, calculated from the latest active floor sensor signals
 - separate Top Floor, Middle Floor, and Bottom Floor sensor graphs
+- per-floor connection state
+- sensor-only classifier state: `No motion`,
+  `Non-Earthquake motion detected`, or `Earthquake detected`
 
 The app is configured in `Dockerfile` and `wendy.json`. Wendy grants host
-networking, GPIO access for pins `12`, `17`, and `18`, USB access, and serial
-access to `ttyUSB0`, `ttyUSB1`, and `ttyUSB2`.
+networking, Bluetooth access for BLE sensors, GPIO access for pins `12`, `17`,
+and `18`, USB access, and serial access to `ttyUSB0`, `ttyUSB1`, and `ttyUSB2`
+for the current wired fallback setup.
 
 For laptop/UI testing without touching hardware:
 
 ```bash
 MOTOR_DRY_RUN=1 SIMULATE_SENSOR=1 python3 rumble_ui.py --host 127.0.0.1 --port 8000
+```
+
+For frontend development:
+
+```bash
+npm install
+npm run dev
+```
+
+For production frontend assets served by `rumble_ui.py`:
+
+```bash
+npm run build
 ```
 
 Useful Wendy checks:
@@ -135,8 +175,9 @@ was chosen because it was visibly testable on the current L298N setup.
 ## Files
 
 - `l298n_motor.py`: main working motor script using `/dev/gpiochip0`
-- `rumble_ui.py`: Wendy/browser app backend, HTTP API, SSE stream, motor runner, and WIT sensor reader
-- `static/`: browser UI for the earthquake button and live graphs
+- `rumble_ui.py`: Wendy/browser app backend, HTTP API, SSE stream, demo state machine, classifier, motor runner, and WIT sensor reader
+- `frontend/`: Vite React TypeScript dashboard source
+- `static/`: generated production frontend assets served by the Python backend
 - `wendy.json`: WendyOS app config and hardware entitlements
 - `Dockerfile`: deployable Python runtime for Wendy
 - `motor_ramp.py`: up/down ramp runner that writes CSV and SVG command graphs
@@ -150,18 +191,22 @@ was chosen because it was visibly testable on the current L298N setup.
 `rumble_ui.py` starts three cooperating pieces:
 
 1. `ThreadingHTTPServer` serves `static/index.html`, accepts
-   `POST /api/rumble`, exposes `/health`, and streams `/events`.
-2. `RumbleController` runs each earthquake in a background thread. It uses the
-   existing `l298n_motor.py` GPIO code and always shuts the motor off in a
-   `finally` block.
+   `POST /api/demo/start`, `POST /api/demo/stop`, exposes `/health`, and
+   streams `/events`.
+2. `DemoController` runs one randomized-delay, 20 second ramping earthquake
+   sequence in a background thread. It uses the existing `l298n_motor.py` GPIO
+   code and always shuts the motor off in a `finally` block.
 3. `SensorReader` opens the configured WIT serial ports at `115200` baud. It
    parses standard `0x55 0x51/0x52/0x53` WIT packets and the observed 32-byte
    `0x55 0x61` wired frames. The UI currently uses the wide-frame shake metric
    as a relative signal, not a calibrated engineering unit.
+4. `SensorClassifier` uses rolling windows across floors. It does not read demo
+   or motor state; it only labels the live sensor response as no motion,
+   non-earthquake motion, or earthquake detected.
 
-The frontend opens one `EventSource` to `/events`. Rumble events update the
-commanded-strength chart. Sensor events update the Total Shake chart and each
-floor chart. Total Shake is the sum of the latest active sensor signals.
+The frontend opens one `EventSource` to `/events`. Demo events update the
+commanded-strength chart. Sensor and classification events update Total Shake,
+per-floor charts, connection state, and classifier state.
 
 ## Safety
 

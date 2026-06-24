@@ -20,6 +20,9 @@
       "type": "usb"
     },
     {
+      "type": "bluetooth"
+    },
+    {
       "type": "serial",
       "device": "ttyUSB0"
     },

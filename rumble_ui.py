@@ -18,6 +18,7 @@ import termios
 import threading
 import time
 import tty
+from collections import deque
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
@@ -73,14 +74,44 @@ class EventBus:
                     pass
 
 
-class RumbleController:
+FLOOR_LABELS = {
+    "/dev/ttyUSB0": "Top Floor",
+    "/dev/ttyUSB1": "Middle Floor",
+    "/dev/ttyUSB2": "Bottom Floor",
+}
+
+
+class DemoController:
     def __init__(self, bus: EventBus, dry_run: bool) -> None:
         self.bus = bus
         self.dry_run = dry_run
         self._lock = threading.Lock()
-        self._busy = False
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._state: dict[str, Any] = {
+            "type": "demo",
+            "state": "idle",
+            "duration": 20.0,
+            "delay": 0.0,
+            "elapsed": 0.0,
+            "duty": 0.0,
+            "dryRun": dry_run,
+        }
 
-    def start(self, duration: float, max_duty: float, cycle: float, step: float = 0.75, min_duty: float = 0.05) -> None:
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return dict(self._state)
+
+    def start(
+        self,
+        duration: float = 20.0,
+        max_duty: float = 1.0,
+        cycle: float = 0.2,
+        step: float = 0.25,
+        min_duty: float = 0.05,
+        delay_min: float = 5.0,
+        delay_max: float = 20.0,
+    ) -> None:
         if duration <= 0 or duration > 60:
             raise ValueError("duration must be greater than 0 and no more than 60 seconds")
         if not 0 <= min_duty <= 1:
@@ -93,65 +124,186 @@ class RumbleController:
             raise ValueError("cycle must be greater than 0")
         if step <= 0:
             raise ValueError("step must be greater than 0")
+        if delay_min < 0 or delay_max < delay_min:
+            raise ValueError("delay range is invalid")
 
         with self._lock:
-            if self._busy:
-                raise RuntimeError("rumble already running")
-            self._busy = True
+            if self._thread and self._thread.is_alive():
+                raise RuntimeError("demo already running")
+            self._stop.clear()
 
         thread = threading.Thread(
             target=self._run,
-            args=(duration, min_duty, max_duty, cycle, step),
-            name="earthquake",
+            args=(duration, min_duty, max_duty, cycle, step, delay_min, delay_max),
+            name="earthquake-demo",
             daemon=True,
         )
+        with self._lock:
+            self._thread = thread
         thread.start()
 
-    def _run(self, duration: float, min_duty: float, max_duty: float, cycle: float, step: float) -> None:
+    def stop(self) -> None:
+        self._stop.set()
+
+    def _publish(self, **state: Any) -> None:
+        event = {"type": "demo", **state, "dryRun": self.dry_run}
+        with self._lock:
+            self._state.update(event)
+            snapshot = dict(self._state)
+        self.bus.publish(snapshot)
+
+    def _run(
+        self,
+        duration: float,
+        min_duty: float,
+        max_duty: float,
+        cycle: float,
+        step: float,
+        delay_min: float,
+        delay_max: float,
+    ) -> None:
         motor = DryMotor() if self.dry_run else Motor()
-        start = time.monotonic()
-        self.bus.publish(
-            {
-                "type": "rumble",
-                "state": "start",
-                "mode": "earthquake",
-                "duration": duration,
-                "duty": 0,
-                "minDuty": min_duty,
-                "maxDuty": max_duty,
-                "cycle": cycle,
-                "dryRun": self.dry_run,
-            }
+        delay = random.uniform(delay_min, delay_max)
+        self._publish(
+            state="armed",
+            mode="earthquake",
+            duration=duration,
+            delay=delay,
+            elapsed=0.0,
+            duty=0.0,
+            minDuty=min_duty,
+            maxDuty=max_duty,
+            cycle=cycle,
         )
         try:
             motor.off()
             time.sleep(0.05)
+            wait_start = time.monotonic()
+            while not self._stop.is_set():
+                waited = time.monotonic() - wait_start
+                if waited >= delay:
+                    break
+                self._publish(state="waiting_random_delay", elapsed=0.0, delayRemaining=max(0.0, delay - waited))
+                time.sleep(min(0.5, delay - waited))
+            if self._stop.is_set():
+                self._publish(state="stopped", duty=0.0)
+                return
+
+            start = time.monotonic()
+            self._publish(state="running", elapsed=0.0, duty=0.0, delayRemaining=0.0)
             elapsed = 0.0
-            while elapsed < duration:
-                chunk = min(step, duration - elapsed)
-                duty = random.uniform(min_duty, max_duty)
-                self.bus.publish(
-                    {
-                        "type": "rumble",
-                        "state": "running",
-                        "mode": "earthquake",
-                        "elapsed": time.monotonic() - start,
-                        "duration": duration,
-                        "duty": duty,
-                    }
-                )
+            while elapsed < duration and not self._stop.is_set():
+                elapsed = time.monotonic() - start
+                chunk = min(step, max(0.0, duration - elapsed))
+                if chunk <= 0:
+                    break
+                ramp = min(1.0, elapsed / duration)
+                jitter = random.uniform(-0.08, 0.12)
+                duty = max(min_duty, min(max_duty, min_duty + (max_duty - min_duty) * ramp + jitter))
+                self._publish(state="running", elapsed=elapsed, duration=duration, duty=duty)
                 pulse(motor, "forward", duty, chunk, cycle)
-                elapsed += chunk
         except Exception as exc:
-            self.bus.publish({"type": "rumble", "state": "error", "message": str(exc)})
+            self._publish(state="error", message=str(exc), duty=0.0)
         finally:
             try:
                 motor.off()
             finally:
                 motor.close()
-            self.bus.publish({"type": "rumble", "state": "stop", "duty": 0, "mode": "earthquake"})
-            with self._lock:
-                self._busy = False
+            if not self._stop.is_set():
+                self._publish(state="complete", duty=0.0, elapsed=duration)
+
+
+class SensorClassifier:
+    def __init__(self, bus: EventBus, demo: DemoController, expected_sensors: int = 3) -> None:
+        self.bus = bus
+        self.demo = demo
+        self.expected_sensors = expected_sensors
+        self._samples: dict[str, deque[tuple[float, float]]] = {}
+        self._latest: dict[str, tuple[float, float]] = {}
+        self._last_label = ""
+        self._last_emit = 0.0
+        self._lock = threading.Lock()
+
+    def ingest(self, event: dict[str, Any]) -> None:
+        sensor_id = str(event.get("sensorId") or "")
+        if not sensor_id:
+            return
+        raw_value = max(0.0, float(event.get("accelMag") or 0.0))
+        value = abs(raw_value - 1.0) if event.get("packet") == "accel" else raw_value
+        ts = float(event.get("ts") or time.time())
+        with self._lock:
+            samples = self._samples.setdefault(sensor_id, deque())
+            samples.append((ts, value))
+            cutoff = ts - 2.0
+            while samples and samples[0][0] < cutoff:
+                samples.popleft()
+            self._latest[sensor_id] = (ts, value)
+            classification = self._classify_locked(ts)
+        if classification is not None:
+            self.bus.publish(classification)
+
+    def _classify_locked(self, now: float) -> dict[str, Any] | None:
+        active_latest = {
+            sensor_id: value
+            for sensor_id, (ts, value) in self._latest.items()
+            if now - ts <= 1.0
+        }
+        energies: dict[str, float] = {}
+        peaks: dict[str, float] = {}
+        for sensor_id, samples in self._samples.items():
+            window = [value for ts, value in samples if now - ts <= 0.75]
+            if not window:
+                continue
+            energies[sensor_id] = sum(value * value for value in window) / len(window)
+            peaks[sensor_id] = max(window)
+
+        active_count = len(active_latest)
+        energized = [sensor_id for sensor_id, energy in energies.items() if energy >= 0.0025 or peaks[sensor_id] >= 0.08]
+        total = sum(active_latest.values())
+        strongest = max(peaks.values(), default=0.0)
+        sustained = [
+            sensor_id
+            for sensor_id, samples in self._samples.items()
+            if len([value for ts, value in samples if now - ts <= 1.5 and value >= 0.04]) >= 6
+        ]
+
+        if active_count == 0:
+            label = "No motion"
+            confidence = 0.0
+        elif len(energized) >= 2 and len(sustained) >= 2:
+            label = "Earthquake detected"
+            confidence = min(0.95, 0.35 + 0.18 * len(energized) + 0.12 * len(sustained) + total * 5.0)
+        elif len(energized) >= 1:
+            label = "Non-Earthquake motion detected"
+            confidence = min(0.8, 0.35 + 0.15 * len(energized) + total * 5.0)
+        else:
+            label = "No motion"
+            confidence = min(0.4, total * 10.0)
+
+        if label == self._last_label and now - self._last_emit < 0.5:
+            return None
+        self._last_label = label
+        self._last_emit = now
+        return {
+            "type": "classification",
+            "label": label,
+            "confidence": confidence,
+            "activeSensors": active_count,
+            "energizedSensors": len(energized),
+            "sustainedSensors": len(sustained),
+            "totalShake": total,
+            "sensors": [
+                {
+                    "id": sensor_id,
+                    "name": FLOOR_LABELS.get(sensor_id, sensor_id),
+                    "value": active_latest.get(sensor_id, 0.0),
+                    "energy": energies.get(sensor_id, 0.0),
+                    "peak": peaks.get(sensor_id, 0.0),
+                    "connected": sensor_id in active_latest,
+                }
+                for sensor_id in sorted(set(self._samples) | set(active_latest))
+            ],
+        }
 
 
 def auto_serial_port() -> str | None:
@@ -298,6 +450,7 @@ class SensorReader:
         ble_names: list[str],
         ble_addresses: list[str],
         max_ble_devices: int,
+        classifier: SensorClassifier | None = None,
     ) -> None:
         self.bus = bus
         self.ports = ports
@@ -307,7 +460,13 @@ class SensorReader:
         self.ble_names = ble_names
         self.ble_addresses = [address.upper() for address in ble_addresses]
         self.max_ble_devices = max_ble_devices
+        self.classifier = classifier
         self._stop = threading.Event()
+
+    def _publish_sensor(self, event: dict[str, Any]) -> None:
+        self.bus.publish(event)
+        if event.get("type") == "sensor" and event.get("packet") in {"accel", "wide61"} and self.classifier:
+            self.classifier.ingest(event)
 
     def start(self) -> None:
         threading.Thread(target=self._run, name="sensor-reader", daemon=True).start()
@@ -416,7 +575,7 @@ class SensorReader:
                         event["sensorId"] = port
                         event["sensorName"] = sensor_name
                         event["transport"] = "serial"
-                        self.bus.publish(event)
+                        self._publish_sensor(event)
         finally:
             os.close(fd)
 
@@ -506,7 +665,7 @@ class SensorReader:
                     event["sensorId"] = sensor_id
                     event["sensorName"] = sensor_name
                     event["transport"] = "ble"
-                    self.bus.publish(event)
+                    self._publish_sensor(event)
 
         try:
             async with BleakClient(device, timeout=15.0) as client:
@@ -573,7 +732,7 @@ class SensorReader:
             ax = math.sin(t * 4.0) * 0.07 + random.uniform(-0.02, 0.02)
             ay = math.cos(t * 3.0) * 0.05 + random.uniform(-0.02, 0.02)
             az = 1.0 + math.sin(t * 6.0) * 0.04 + random.uniform(-0.015, 0.015)
-            self.bus.publish(
+            self._publish_sensor(
                 {
                     "type": "sensor",
                     "packet": "accel",
@@ -589,7 +748,7 @@ class SensorReader:
             time.sleep(0.1)
 
 
-def make_handler(bus: EventBus, controller: RumbleController):
+def make_handler(bus: EventBus, controller: DemoController):
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, directory=str(STATIC), **kwargs)
@@ -602,30 +761,39 @@ def make_handler(bus: EventBus, controller: RumbleController):
                 self._events()
                 return
             if self.path == "/health":
-                self._json({"ok": True})
+                self._json({"ok": True, "demo": controller.snapshot()})
+                return
+            if self.path == "/api/demo/state":
+                self._json({"ok": True, "demo": controller.snapshot()})
                 return
             if self.path == "/":
                 self.path = "/index.html"
             super().do_GET()
 
         def do_POST(self) -> None:
-            if self.path != "/api/rumble":
+            if self.path == "/api/demo/stop":
+                controller.stop()
+                self._json({"ok": True, "demo": controller.snapshot()})
+                return
+            if self.path not in {"/api/rumble", "/api/demo/start"}:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             try:
                 length = int(self.headers.get("content-length", "0"))
                 payload = json.loads(self.rfile.read(length) or b"{}")
                 controller.start(
-                    duration=float(payload.get("duration", 2.0)),
+                    duration=float(payload.get("duration", 20.0)),
                     max_duty=float(payload.get("maxDuty", payload.get("duty", 1.0))),
                     cycle=float(payload.get("cycle", 0.2)),
-                    step=float(payload.get("step", 0.75)),
+                    step=float(payload.get("step", 0.25)),
                     min_duty=float(payload.get("minDuty", 0.05)),
+                    delay_min=float(payload.get("delayMin", 5.0)),
+                    delay_max=float(payload.get("delayMax", 20.0)),
                 )
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
                 return
-            self._json({"ok": True})
+            self._json({"ok": True, "demo": controller.snapshot()})
 
         def _events(self) -> None:
             self.send_response(HTTPStatus.OK)
@@ -685,7 +853,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     bus = EventBus()
-    controller = RumbleController(bus, dry_run=args.dry_run)
+    controller = DemoController(bus, dry_run=args.dry_run)
+    classifier = SensorClassifier(bus, controller)
     ble_names = args.ble_name or os.environ.get("WIT_BLE_NAMES", "WTVB,WIT,WT").split(",")
     ble_addresses = args.ble_address or os.environ.get("WIT_BLE_ADDRESSES", "").split(",")
     serial_ports = []
@@ -702,6 +871,7 @@ def main() -> int:
         [name.strip() for name in ble_names if name.strip()],
         [address.strip() for address in ble_addresses if address.strip()],
         args.max_ble_devices,
+        classifier,
     )
     sensor.start()
 
