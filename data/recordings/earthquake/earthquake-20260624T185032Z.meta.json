@@ -1,0 +1,17 @@
+{
+  "sessionId": "earthquake-20260624T185032Z",
+  "label": "earthquake",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782327032.4853241,
+  "duration": 6.988294248624753,
+  "triggerDemo": false,
+  "notes": "dashboard Earthquake recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782327039.520992,
+  "events": 208,
+  "counts": {
+    "FA:91:56:1E:26:15": 69,
+    "D1:6E:A1:15:03:57": 70,
+    "D0:99:8C:48:4D:38": 69
+  }
+}

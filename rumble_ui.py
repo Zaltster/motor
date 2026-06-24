@@ -12,8 +12,10 @@ import math
 import os
 import queue
 import random
+import shutil
 import socketserver
 import struct
+import subprocess
 import termios
 import threading
 import time
@@ -156,6 +158,54 @@ class DemoController:
             snapshot = dict(self._state)
         self.bus.publish(snapshot)
 
+    def _earthquake_profile(self, duration: float) -> dict[str, Any]:
+        s_arrival = random.uniform(0.12, 0.30) * duration
+        peak_time = random.uniform(0.35, 0.70) * duration
+        coda_decay = random.uniform(0.18, 0.42) * duration
+        burst_count = random.randint(2, 5)
+        return {
+            "sArrival": s_arrival,
+            "peakTime": max(s_arrival + 0.5, peak_time),
+            "codaDecay": max(1.0, coda_decay),
+            "modA": random.uniform(0.7, 1.6),
+            "modB": random.uniform(1.8, 3.4),
+            "phaseA": random.uniform(0, math.tau),
+            "phaseB": random.uniform(0, math.tau),
+            "bursts": [
+                {
+                    "center": random.uniform(s_arrival, duration * 0.92),
+                    "width": random.uniform(0.45, 1.8),
+                    "amp": random.uniform(0.08, 0.28),
+                }
+                for _ in range(burst_count)
+            ],
+        }
+
+    def _earthquake_duty(self, elapsed: float, duration: float, min_duty: float, max_duty: float, profile: dict[str, Any]) -> float:
+        s_arrival = float(profile["sArrival"])
+        peak_time = float(profile["peakTime"])
+        coda_decay = float(profile["codaDecay"])
+        if elapsed < s_arrival:
+            phase = elapsed / max(0.1, s_arrival)
+            envelope = 0.04 + 0.16 * phase
+        elif elapsed < peak_time:
+            phase = (elapsed - s_arrival) / max(0.1, peak_time - s_arrival)
+            envelope = 0.18 + 0.72 * phase
+        else:
+            envelope = 0.16 + 0.82 * math.exp(-(elapsed - peak_time) / coda_decay)
+
+        modulation = (
+            0.08 * math.sin(math.tau * elapsed / float(profile["modA"]) + float(profile["phaseA"]))
+            + 0.05 * math.sin(math.tau * elapsed / float(profile["modB"]) + float(profile["phaseB"]))
+        )
+        burst = 0.0
+        for item in profile["bursts"]:
+            distance = (elapsed - float(item["center"])) / float(item["width"])
+            burst += float(item["amp"]) * math.exp(-distance * distance)
+        noise = random.uniform(-0.07, 0.07)
+        intensity = max(0.0, min(1.0, envelope + modulation + burst + noise))
+        return max(min_duty, min(max_duty, min_duty + (max_duty - min_duty) * intensity))
+
     def _run(
         self,
         duration: float,
@@ -194,6 +244,7 @@ class DemoController:
                 return
 
             start = time.monotonic()
+            profile = self._earthquake_profile(duration)
             self._publish(state="running", elapsed=0.0, duty=0.0, delayRemaining=0.0)
             elapsed = 0.0
             while elapsed < duration and not self._stop.is_set():
@@ -201,11 +252,10 @@ class DemoController:
                 chunk = min(step, max(0.0, duration - elapsed))
                 if chunk <= 0:
                     break
-                ramp = min(1.0, elapsed / duration)
-                jitter = random.uniform(-0.08, 0.12)
-                duty = max(min_duty, min(max_duty, min_duty + (max_duty - min_duty) * ramp + jitter))
-                self._publish(state="running", elapsed=elapsed, duration=duration, duty=duty)
-                pulse(motor, "forward", duty, chunk, cycle)
+                duty = self._earthquake_duty(elapsed, duration, min_duty, max_duty, profile)
+                current_cycle = max(0.08, min(0.35, cycle * random.uniform(0.72, 1.35)))
+                self._publish(state="running", elapsed=elapsed, duration=duration, duty=duty, cycle=current_cycle)
+                pulse(motor, "forward", duty, chunk, current_cycle)
         except Exception as exc:
             self._publish(state="error", message=str(exc), duty=0.0)
         finally:
@@ -226,6 +276,9 @@ class SensorClassifier:
         self._latest: dict[str, tuple[float, float]] = {}
         self._last_label = ""
         self._last_emit = 0.0
+        self._candidate_label = ""
+        self._candidate_since = 0.0
+        self._stable_label = "No motion"
         self._lock = threading.Lock()
 
     def ingest(self, event: dict[str, Any]) -> None:
@@ -272,18 +325,19 @@ class SensorClassifier:
         ]
 
         if active_count == 0:
-            label = "No motion"
+            raw_label = "No motion"
             confidence = 0.0
-        elif len(energized) >= 2 and len(sustained) >= 2:
-            label = "Earthquake detected"
+        elif active_count >= self.expected_sensors and len(energized) >= 2 and len(sustained) >= 2:
+            raw_label = "Earthquake detected"
             confidence = min(0.95, 0.35 + 0.18 * len(energized) + 0.12 * len(sustained) + total * 5.0)
         elif len(energized) >= 1:
-            label = "Non-Earthquake motion detected"
+            raw_label = "Non-Earthquake motion detected"
             confidence = min(0.8, 0.35 + 0.15 * len(energized) + total * 5.0)
         else:
-            label = "No motion"
+            raw_label = "No motion"
             confidence = min(0.4, total * 10.0)
 
+        label = self._stabilize_label_locked(raw_label, now)
         if label == self._last_label and now - self._last_emit < 0.5:
             return None
         self._last_label = label
@@ -308,6 +362,23 @@ class SensorClassifier:
                 for sensor_id in sorted(set(self._samples) | set(active_latest))
             ],
         }
+
+    def _stabilize_label_locked(self, label: str, now: float) -> str:
+        if label != self._candidate_label:
+            self._candidate_label = label
+            self._candidate_since = now
+
+        required = 0.0
+        if label == "Earthquake detected":
+            required = 2.0
+        elif label == "Non-Earthquake motion detected":
+            required = 0.75
+        elif self._stable_label != "No motion":
+            required = 1.0
+
+        if now - self._candidate_since >= required:
+            self._stable_label = label
+        return self._stable_label
 
 
 def auto_serial_port() -> str | None:
@@ -468,11 +539,30 @@ class SensorReader:
         self.max_ble_devices = max_ble_devices
         self.classifier = classifier
         self._stop = threading.Event()
+        self._transport_lock = threading.Lock()
+        self._last_transport_sample: dict[str, float] = {}
 
     def _publish_sensor(self, event: dict[str, Any]) -> None:
         self.bus.publish(event)
-        if event.get("type") == "sensor" and event.get("packet") in {"accel", "wide61"} and self.classifier:
+        if (
+            event.get("type") == "sensor"
+            and event.get("packet") in {"accel", "wide61"}
+            and self.classifier
+            and self._should_classify_transport(event)
+        ):
             self.classifier.ingest(event)
+
+    def _should_classify_transport(self, event: dict[str, Any]) -> bool:
+        transport = str(event.get("transport") or "")
+        if transport not in {"serial", "ble"}:
+            return True
+        now = time.time()
+        with self._transport_lock:
+            self._last_transport_sample[transport] = now
+            serial_active = now - self._last_transport_sample.get("serial", 0.0) <= 2.5
+        if serial_active:
+            return transport == "serial"
+        return transport == "ble"
 
     def start(self) -> None:
         threading.Thread(target=self._run, name="sensor-reader", daemon=True).start()
@@ -483,19 +573,45 @@ class SensorReader:
             self._simulate()
             return
 
-        if self.mode == "serial" or (self.mode == "auto" and self._serial_ports()):
+        if self.mode == "auto":
+            self._run_auto()
+            return
+
+        if self.mode == "serial":
             self._run_serial()
             return
 
-        if self.mode in {"auto", "ble"}:
+        if self.mode == "ble":
             try:
                 asyncio.run(self._run_ble())
                 return
             except Exception as exc:
                 self.bus.publish({"type": "sensorStatus", "state": "error", "message": f"BLE error: {exc}"})
-                if self.mode == "ble":
-                    self._simulate()
-                    return
+                self._simulate()
+                return
+
+    def _run_auto(self) -> None:
+        ports = self._serial_ports()
+        if ports:
+            threading.Thread(target=self._run_serial, args=(False,), name="serial-auto", daemon=True).start()
+        else:
+            self.bus.publish(
+                {
+                    "type": "sensorStatus",
+                    "state": "serial-unavailable",
+                    "message": "No serial sensor ports found; using BLE",
+                }
+            )
+        try:
+            asyncio.run(self._run_ble())
+            return
+        except Exception as exc:
+            self.bus.publish({"type": "sensorStatus", "state": "error", "message": f"BLE error: {exc}"})
+            if not ports:
+                self._simulate()
+                return
+            while not self._stop.is_set():
+                time.sleep(1.0)
 
     def _serial_ports(self) -> list[str]:
         if self.ports:
@@ -503,11 +619,12 @@ class SensorReader:
         port = auto_serial_port()
         return [port] if port is not None else []
 
-    def _run_serial(self) -> None:
+    def _run_serial(self, fallback_simulate: bool = True) -> None:
         ports = self._serial_ports()
         if not ports:
             self.bus.publish({"type": "sensorStatus", "state": "simulated", "message": "no serial sensor found"})
-            self._simulate()
+            if fallback_simulate:
+                self._simulate()
             return
 
         self.bus.publish({"type": "sensorStatus", "state": "serial-ready", "ports": ports, "baud": self.baud})
@@ -636,6 +753,10 @@ class SensorReader:
                 }
             )
             if not targets:
+                disconnected = self._disconnect_stale_ble_connections()
+                if disconnected:
+                    await asyncio.sleep(2.0)
+                    continue
                 await asyncio.sleep(4.0)
                 continue
 
@@ -658,6 +779,56 @@ class SensorReader:
                     with contextlib.suppress(asyncio.CancelledError):
                         await task
             await asyncio.sleep(1.0)
+
+    def _disconnect_stale_ble_connections(self) -> int:
+        if shutil.which("bluetoothctl") is None:
+            return 0
+        try:
+            listed = subprocess.run(
+                ["bluetoothctl", "devices", "Connected"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5.0,
+            )
+        except Exception:
+            return 0
+        disconnected = 0
+        for line in listed.stdout.splitlines():
+            parts = line.split(maxsplit=2)
+            if len(parts) < 2 or parts[0] != "Device":
+                continue
+            address = parts[1]
+            name = parts[2] if len(parts) > 2 else ""
+            should_check = address.upper() in self.ble_addresses or any(
+                token and token.upper() in name.upper() for token in self.ble_names if len(token) > 2
+            )
+            if not should_check:
+                try:
+                    info = subprocess.run(
+                        ["bluetoothctl", "info", address],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=5.0,
+                    ).stdout.lower()
+                except Exception:
+                    info = ""
+                should_check = any(uuid in info for uuid in self.ble_service_uuids or WIT_SERVICE_UUIDS)
+            if not should_check:
+                continue
+            subprocess.run(["bluetoothctl", "disconnect", address], check=False, capture_output=True, text=True, timeout=8.0)
+            disconnected += 1
+        if disconnected:
+            self.bus.publish(
+                {
+                    "type": "sensorStatus",
+                    "state": "ble-disconnect-stale",
+                    "count": disconnected,
+                    "message": "Disconnected stale WIT BLE links before rescanning",
+                }
+            )
+        return disconnected
 
     async def _read_ble_device(self, device: Any, sensor_name: str, delay: float = 0.0) -> None:
         from bleak import BleakClient

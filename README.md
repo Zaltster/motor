@@ -37,7 +37,13 @@ This repository implements the Wendy Studio Vibration Tower Earthquake Demo:
 
 The Wendy app is BLE-capable through the `bluetooth` entitlement and the
 `bleak` Python package. The current bench setup still keeps serial/USB
-entitlements because the verified sensors today are wired WIT adapters.
+entitlements because wired WIT adapters are still useful as the preferred
+regular connection when present.
+
+In `SENSOR_MODE=auto`, the backend streams serial and BLE at the same time. The
+dashboard and classifier prefer serial sensor data while serial is actively
+producing packets, and automatically display/use BLE data when serial is absent
+or inactive.
 
 Verified WIT BLE details:
 
@@ -116,7 +122,7 @@ For laptop/UI testing without touching hardware:
 MOTOR_DRY_RUN=1 SIMULATE_SENSOR=1 python3 rumble_ui.py --host 127.0.0.1 --port 8000
 ```
 
-For BLE sensor mode:
+For explicit BLE-only sensor mode:
 
 ```bash
 SENSOR_MODE=ble WIT_BLE_SERVICE_UUIDS=0000ffe5-0000-1000-8000-00805f9a34fb python3 rumble_ui.py --host 0.0.0.0 --port 8000
@@ -219,10 +225,12 @@ was chosen because it was visibly testable on the current L298N setup.
 2. `DemoController` runs one randomized-delay, 20 second ramping earthquake
    sequence in a background thread. It uses the existing `l298n_motor.py` GPIO
    code and always shuts the motor off in a `finally` block.
-3. `SensorReader` opens the configured WIT serial ports at `115200` baud. It
-   parses standard `0x55 0x51/0x52/0x53` WIT packets and the observed 32-byte
-   `0x55 0x61` wired frames. The UI currently uses the wide-frame shake metric
-   as a relative signal, not a calibrated engineering unit.
+3. `SensorReader` streams configured WIT serial ports and WIT BLE sensors. In
+   auto mode, serial and BLE run concurrently; serial is preferred while active,
+   with BLE as the automatic display/classifier fallback. It parses standard
+   `0x55 0x51/0x52/0x53` WIT packets and the observed 32-byte `0x55 0x61`
+   frames. The UI currently uses the wide-frame shake metric as a relative
+   signal, not a calibrated engineering unit.
 4. `SensorClassifier` uses rolling windows across floors. It does not read demo
    or motor state; it only labels the live sensor response as no motion,
    non-earthquake motion, or earthquake detected.

@@ -1,0 +1,26 @@
+{
+  "sessionId": "earthquake-20260624T173856Z",
+  "label": "earthquake",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782322736.727669,
+  "duration": 45.0,
+  "triggerDemo": true,
+  "demoResponse": {
+    "ok": true,
+    "demo": {
+      "type": "demo",
+      "state": "complete",
+      "duration": 20.0,
+      "delay": 15.706167095989827,
+      "elapsed": 20.0,
+      "duty": 0.0,
+      "dryRun": false,
+      "mode": "earthquake",
+      "minDuty": 0.05,
+      "maxDuty": 1.0,
+      "cycle": 0.2,
+      "delayRemaining": 0.0
+    }
+  },
+  "notes": "first labeled earthquake recording; motor demo triggered by recorder"
+}

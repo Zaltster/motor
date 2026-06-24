@@ -1,0 +1,10 @@
+{
+  "sessionId": "no_motion-20260624T174109Z",
+  "label": "no_motion",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782322869.9313521,
+  "duration": 45.0,
+  "triggerDemo": false,
+  "demoResponse": null,
+  "notes": "first labeled no-motion recording; tower left untouched; motor off"
+}

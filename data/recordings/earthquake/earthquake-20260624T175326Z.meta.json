@@ -1,0 +1,39 @@
+{
+  "sessionId": "earthquake-20260624T175326Z",
+  "label": "earthquake",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782323606.9924438,
+  "duration": 45.0,
+  "triggerDemo": true,
+  "demoSequence": [
+    20.0,
+    25.0
+  ],
+  "demoGap": 0.0,
+  "demoResponses": [
+    {
+      "index": 0,
+      "duration": 20.0,
+      "response": {
+        "ok": true,
+        "demo": {
+          "type": "demo",
+          "state": "complete",
+          "duration": 20.0,
+          "delay": 0.0,
+          "elapsed": 20.0,
+          "duty": 0.0,
+          "dryRun": false,
+          "mode": "earthquake",
+          "minDuty": 0.05,
+          "maxDuty": 1.0,
+          "cycle": 0.2,
+          "delayRemaining": 0.0
+        }
+      },
+      "at": 1782323607.1016681
+    }
+  ],
+  "notes": "second earthquake recording; two back-to-back motor bursts, 20s then 25s",
+  "finishedAt": 1782323652.002718
+}

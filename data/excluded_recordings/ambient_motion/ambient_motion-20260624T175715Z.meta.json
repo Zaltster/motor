@@ -1,0 +1,13 @@
+{
+  "sessionId": "ambient_motion-20260624T175715Z",
+  "label": "ambient_motion",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782323835.8029618,
+  "duration": 45.0,
+  "triggerDemo": false,
+  "demoSequence": [],
+  "demoGap": 0.0,
+  "demoResponses": [],
+  "notes": "third labeled ambient-motion recording; room motion and stomping; motor off",
+  "finishedAt": 1782323880.816083
+}

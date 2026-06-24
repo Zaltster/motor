@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, AlertTriangle, CircleStop, Play, RadioTower, Waves } from "lucide-react";
+import { Activity, AlertTriangle, Brain, CircleStop, Play, RadioTower, Waves } from "lucide-react";
 import "./styles.css";
 
 type DemoState = {
@@ -26,6 +26,7 @@ type SensorEvent = {
   az?: number;
   tempC?: number;
   simulated?: boolean;
+  transport?: "serial" | "ble" | string;
   ts: number;
 };
 
@@ -52,6 +53,17 @@ type ClassificationEvent = {
 type EventPayload = DemoState | SensorEvent | SensorStatusEvent | ClassificationEvent;
 
 type Sample = { t: number; value: number };
+type MlPrediction = {
+  ready: boolean;
+  prediction?: string;
+  displayLabel?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+  samples?: number;
+  message?: string;
+  error?: string;
+};
+
 type SensorState = {
   id: string;
   name: string;
@@ -63,6 +75,8 @@ type SensorState = {
   samples: Sample[];
   lastSeen: number;
 };
+
+type TrainingLabel = "no_motion" | "ambient_motion" | "earthquake";
 
 const floorLabels: Record<string, string> = {
   "/dev/ttyUSB0": "Top Floor",
@@ -177,6 +191,8 @@ function App() {
   const [sensors, setSensors] = useState<Record<string, SensorState>>({});
   const [rumbleSamples, setRumbleSamples] = useState<Sample[]>([]);
   const [totalSamples, setTotalSamples] = useState<Sample[]>([]);
+  const [trainingStatus, setTrainingStatus] = useState("Local recorder idle");
+  const [mlPrediction, setMlPrediction] = useState<MlPrediction | null>(null);
 
   useEffect(() => {
     fetch("/api/demo/state")
@@ -242,8 +258,35 @@ function App() {
     return () => window.clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      fetch("http://127.0.0.1:8765/status")
+        .then((response) => response.json())
+        .then((body) => {
+          const recorder = body.recorder;
+          if (!recorder) return;
+          if (recorder.active) {
+            const duration = Number(recorder.duration || 0);
+            setTrainingStatus(`Recording ${recorder.label} ${duration.toFixed(1)}s (${recorder.events || 0} samples)`);
+          } else if (recorder.message === "complete") {
+            setTrainingStatus(`Saved ${recorder.label}: ${recorder.events || 0} samples`);
+          } else if (recorder.message === "error") {
+            setTrainingStatus(recorder.error || "Recorder error");
+          }
+        })
+        .catch(() => undefined);
+      fetch("http://127.0.0.1:8765/prediction")
+        .then((response) => response.json())
+        .then((body) => {
+          if (body.prediction) setMlPrediction(body.prediction);
+        })
+        .catch(() => undefined);
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const orderedSensors = useMemo(() => {
-    const ordered = floorOrder.map((id) => sensors[id] || {
+    const serialSensors = floorOrder.map((id) => sensors[id] || {
       id,
       name: id,
       label: floorLabels[id],
@@ -253,6 +296,7 @@ function App() {
       samples: [],
       lastSeen: 0,
     });
+    const serialActive = serialSensors.some((sensor) => sensor.connected);
     const dynamicSensors = Object.values(sensors)
       .filter((sensor) => !floorOrder.includes(sensor.id))
       .sort((a, b) => a.id.localeCompare(b.id))
@@ -260,7 +304,8 @@ function App() {
         ...sensor,
         label: sensor.label === sensor.name ? `BLE Floor ${index + 1}` : sensor.label,
       }));
-    return dynamicSensors.length > 0 ? dynamicSensors.slice(0, 3) : ordered;
+    if (serialActive || dynamicSensors.length === 0) return serialSensors;
+    return dynamicSensors.slice(0, 3);
   }, [sensors]);
 
   async function startDemo() {
@@ -277,9 +322,43 @@ function App() {
     await fetch("/api/demo/stop", { method: "POST" });
   }
 
+  async function startTrainingRecording(label: TrainingLabel) {
+    const labels: Record<TrainingLabel, string> = {
+      no_motion: "No motion",
+      ambient_motion: "Ambient motion",
+      earthquake: "Earthquake",
+    };
+    setTrainingStatus(`Starting ${labels[label]} recording`);
+    try {
+      const response = await fetch("http://127.0.0.1:8765/record/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label,
+          triggerDemo: label === "earthquake",
+          baseUrl: window.location.origin,
+          notes: `dashboard ${labels[label]} recording`,
+        }),
+      });
+      const body = await response.json();
+      if (!body.ok) {
+        setTrainingStatus(body.error || "Recorder rejected request");
+        return;
+      }
+      const duration = Number(body.recorder?.duration || 0);
+      setTrainingStatus(`Recording ${labels[label]} for ${duration.toFixed(1)}s`);
+    } catch {
+      setTrainingStatus("Start local recorder: python3 tools/local_training_recorder.py");
+    }
+  }
+
   const activeSensors = orderedSensors.filter((sensor) => sensor.connected).length;
   const totalShake = classification?.totalShake || orderedSensors.reduce((sum, sensor) => sum + sensor.value, 0);
   const busy = demo.state === "armed" || demo.state === "waiting_random_delay" || demo.state === "running";
+  const mlLabel = mlPrediction?.ready
+    ? mlPrediction.displayLabel || mlPrediction.prediction?.replaceAll("_", " ")
+    : mlPrediction?.message || "Waiting";
+  const mlConfidence = mlPrediction?.confidence == null ? null : Math.round(mlPrediction.confidence * 100);
 
   return (
     <main className="shell">
@@ -311,11 +390,35 @@ function App() {
         </div>
       </section>
 
+      <section className="trainingBar">
+        <div>
+          <strong>Training Samples</strong>
+          <span>{trainingStatus}</span>
+        </div>
+        <div className="actions">
+          <button className="button" onClick={() => startTrainingRecording("no_motion")} title="Record no motion sample">
+            No motion
+          </button>
+          <button className="button" onClick={() => startTrainingRecording("ambient_motion")} title="Record ambient motion sample">
+            Ambient motion
+          </button>
+          <button className="button" onClick={() => startTrainingRecording("earthquake")} title="Record earthquake sample">
+            Earthquake
+          </button>
+        </div>
+      </section>
+
       <section className="metrics">
         <article>
           <Waves size={18} />
           <span>Classification</span>
           <strong>{classification?.label || "No motion"}</strong>
+        </article>
+        <article>
+          <Brain size={18} />
+          <span>ML confidence{mlConfidence == null ? "" : ` ${mlConfidence}%`}</span>
+          <strong>{mlLabel}</strong>
+          <small>{mlPrediction?.samples ? `${mlPrediction.samples} samples` : mlPrediction?.error || "5s window"}</small>
         </article>
         <article>
           <Activity size={18} />

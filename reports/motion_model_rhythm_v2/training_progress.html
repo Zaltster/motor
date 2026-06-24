@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RandomForest Training Progress</title>
+  <style>
+    body { margin: 28px; color: #101828; background: #f5f7fb; font-family: Inter, system-ui, sans-serif; }
+    section { margin: 18px 0; padding: 18px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; }
+    svg { width: 100%; height: auto; display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 8px 10px; border: 1px solid #eaecf0; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    p { color: #475467; }
+  </style>
+</head>
+<body>
+  <h1>RandomForest Training Progress</h1>
+  <p>RandomForest has no neural-network epochs. These graphs use tree count as an epoch proxy and validate on held-out recording sessions.</p>
+  <section>
+    <h2>Validation Summary</h2>
+    <table>
+      <thead><tr><th>Trees</th><th>Accuracy</th><th>Macro precision</th><th>Macro recall</th><th>Macro F1</th><th>Train Macro F1</th></tr></thead>
+      <tbody><tr><td>5</td><td>72.0%</td><td>61.5%</td><td>84.4%</td><td>63.7%</td><td>98.0%</td></tr><tr><td>10</td><td>73.5%</td><td>63.7%</td><td>85.0%</td><td>65.5%</td><td>98.5%</td></tr><tr><td>20</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.2%</td></tr><tr><td>40</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.3%</td></tr><tr><td>80</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.3%</td></tr><tr><td>120</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.3%</td></tr><tr><td>160</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.4%</td></tr><tr><td>200</td><td>74.2%</td><td>65.3%</td><td>89.2%</td><td>67.4%</td><td>99.4%</td></tr></tbody>
+    </table>
+  </section>
+  <section><svg viewBox="0 0 900 320" role="img" aria-label="Accuracy">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="64" y="26" font-size="18" font-weight="700" fill="#101828">Accuracy</text>
+<line x1="64" x2="876" y1="272.0" y2="272.0" stroke="#e4e7ec"/>
+<text x="56" y="276.0" text-anchor="end" font-size="12" fill="#667085">0.0%</text>
+<line x1="64" x2="876" y1="226.0" y2="226.0" stroke="#e4e7ec"/>
+<text x="56" y="230.0" text-anchor="end" font-size="12" fill="#667085">20.0%</text>
+<line x1="64" x2="876" y1="180.0" y2="180.0" stroke="#e4e7ec"/>
+<text x="56" y="184.0" text-anchor="end" font-size="12" fill="#667085">40.0%</text>
+<line x1="64" x2="876" y1="134.0" y2="134.0" stroke="#e4e7ec"/>
+<text x="56" y="138.0" text-anchor="end" font-size="12" fill="#667085">60.0%</text>
+<line x1="64" x2="876" y1="88.0" y2="88.0" stroke="#e4e7ec"/>
+<text x="56" y="92.0" text-anchor="end" font-size="12" fill="#667085">80.0%</text>
+<line x1="64" x2="876" y1="42.0" y2="42.0" stroke="#e4e7ec"/>
+<text x="56" y="46.0" text-anchor="end" font-size="12" fill="#667085">100.0%</text>
+<line x1="84.3" x2="84.3" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="84.3" y="304" text-anchor="middle" font-size="11" fill="#667085">5</text>
+<line x1="104.6" x2="104.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="104.6" y="304" text-anchor="middle" font-size="11" fill="#667085">10</text>
+<line x1="145.2" x2="145.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="145.2" y="304" text-anchor="middle" font-size="11" fill="#667085">20</text>
+<line x1="226.4" x2="226.4" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="226.4" y="304" text-anchor="middle" font-size="11" fill="#667085">40</text>
+<line x1="388.8" x2="388.8" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="388.8" y="304" text-anchor="middle" font-size="11" fill="#667085">80</text>
+<line x1="551.2" x2="551.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="551.2" y="304" text-anchor="middle" font-size="11" fill="#667085">120</text>
+<line x1="713.6" x2="713.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="713.6" y="304" text-anchor="middle" font-size="11" fill="#667085">160</text>
+<line x1="876.0" x2="876.0" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="876.0" y="304" text-anchor="middle" font-size="11" fill="#667085">200</text>
+<polyline points="84.3,46.4 104.6,45.3 145.2,43.9 226.4,43.7 388.8,43.7 551.2,43.7 713.6,43.4 876.0,43.4" fill="none" stroke="#98a2b3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<polyline points="84.3,106.5 104.6,103.0 145.2,101.2 226.4,101.2 388.8,101.2 551.2,101.2 713.6,101.2 876.0,101.2" fill="none" stroke="#155eef" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="730" y="24" font-size="12" fill="#155eef">validation</text>
+<text x="812" y="24" font-size="12" fill="#667085">train dashed</text>
+<text x="450.0" y="318" text-anchor="middle" font-size="12" fill="#667085">Trees in forest, epoch proxy</text>
+</svg></section>
+<section><svg viewBox="0 0 900 320" role="img" aria-label="Macro precision">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="64" y="26" font-size="18" font-weight="700" fill="#101828">Macro precision</text>
+<line x1="64" x2="876" y1="272.0" y2="272.0" stroke="#e4e7ec"/>
+<text x="56" y="276.0" text-anchor="end" font-size="12" fill="#667085">0.0%</text>
+<line x1="64" x2="876" y1="226.0" y2="226.0" stroke="#e4e7ec"/>
+<text x="56" y="230.0" text-anchor="end" font-size="12" fill="#667085">20.0%</text>
+<line x1="64" x2="876" y1="180.0" y2="180.0" stroke="#e4e7ec"/>
+<text x="56" y="184.0" text-anchor="end" font-size="12" fill="#667085">40.0%</text>
+<line x1="64" x2="876" y1="134.0" y2="134.0" stroke="#e4e7ec"/>
+<text x="56" y="138.0" text-anchor="end" font-size="12" fill="#667085">60.0%</text>
+<line x1="64" x2="876" y1="88.0" y2="88.0" stroke="#e4e7ec"/>
+<text x="56" y="92.0" text-anchor="end" font-size="12" fill="#667085">80.0%</text>
+<line x1="64" x2="876" y1="42.0" y2="42.0" stroke="#e4e7ec"/>
+<text x="56" y="46.0" text-anchor="end" font-size="12" fill="#667085">100.0%</text>
+<line x1="84.3" x2="84.3" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="84.3" y="304" text-anchor="middle" font-size="11" fill="#667085">5</text>
+<line x1="104.6" x2="104.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="104.6" y="304" text-anchor="middle" font-size="11" fill="#667085">10</text>
+<line x1="145.2" x2="145.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="145.2" y="304" text-anchor="middle" font-size="11" fill="#667085">20</text>
+<line x1="226.4" x2="226.4" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="226.4" y="304" text-anchor="middle" font-size="11" fill="#667085">40</text>
+<line x1="388.8" x2="388.8" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="388.8" y="304" text-anchor="middle" font-size="11" fill="#667085">80</text>
+<line x1="551.2" x2="551.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="551.2" y="304" text-anchor="middle" font-size="11" fill="#667085">120</text>
+<line x1="713.6" x2="713.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="713.6" y="304" text-anchor="middle" font-size="11" fill="#667085">160</text>
+<line x1="876.0" x2="876.0" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="876.0" y="304" text-anchor="middle" font-size="11" fill="#667085">200</text>
+<polyline points="84.3,46.1 104.6,44.9 145.2,43.3 226.4,43.1 388.8,43.1 551.2,43.1 713.6,42.9 876.0,42.9" fill="none" stroke="#98a2b3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<polyline points="84.3,130.5 104.6,125.6 145.2,121.8 226.4,121.8 388.8,121.8 551.2,121.8 713.6,121.8 876.0,121.8" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="730" y="24" font-size="12" fill="#7c3aed">validation</text>
+<text x="812" y="24" font-size="12" fill="#667085">train dashed</text>
+<text x="450.0" y="318" text-anchor="middle" font-size="12" fill="#667085">Trees in forest, epoch proxy</text>
+</svg></section>
+<section><svg viewBox="0 0 900 320" role="img" aria-label="Macro recall">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="64" y="26" font-size="18" font-weight="700" fill="#101828">Macro recall</text>
+<line x1="64" x2="876" y1="272.0" y2="272.0" stroke="#e4e7ec"/>
+<text x="56" y="276.0" text-anchor="end" font-size="12" fill="#667085">0.0%</text>
+<line x1="64" x2="876" y1="226.0" y2="226.0" stroke="#e4e7ec"/>
+<text x="56" y="230.0" text-anchor="end" font-size="12" fill="#667085">20.0%</text>
+<line x1="64" x2="876" y1="180.0" y2="180.0" stroke="#e4e7ec"/>
+<text x="56" y="184.0" text-anchor="end" font-size="12" fill="#667085">40.0%</text>
+<line x1="64" x2="876" y1="134.0" y2="134.0" stroke="#e4e7ec"/>
+<text x="56" y="138.0" text-anchor="end" font-size="12" fill="#667085">60.0%</text>
+<line x1="64" x2="876" y1="88.0" y2="88.0" stroke="#e4e7ec"/>
+<text x="56" y="92.0" text-anchor="end" font-size="12" fill="#667085">80.0%</text>
+<line x1="64" x2="876" y1="42.0" y2="42.0" stroke="#e4e7ec"/>
+<text x="56" y="46.0" text-anchor="end" font-size="12" fill="#667085">100.0%</text>
+<line x1="84.3" x2="84.3" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="84.3" y="304" text-anchor="middle" font-size="11" fill="#667085">5</text>
+<line x1="104.6" x2="104.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="104.6" y="304" text-anchor="middle" font-size="11" fill="#667085">10</text>
+<line x1="145.2" x2="145.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="145.2" y="304" text-anchor="middle" font-size="11" fill="#667085">20</text>
+<line x1="226.4" x2="226.4" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="226.4" y="304" text-anchor="middle" font-size="11" fill="#667085">40</text>
+<line x1="388.8" x2="388.8" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="388.8" y="304" text-anchor="middle" font-size="11" fill="#667085">80</text>
+<line x1="551.2" x2="551.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="551.2" y="304" text-anchor="middle" font-size="11" fill="#667085">120</text>
+<line x1="713.6" x2="713.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="713.6" y="304" text-anchor="middle" font-size="11" fill="#667085">160</text>
+<line x1="876.0" x2="876.0" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="876.0" y="304" text-anchor="middle" font-size="11" fill="#667085">200</text>
+<polyline points="84.3,47.1 104.6,46.0 145.2,44.3 226.4,44.0 388.8,44.0 551.2,44.0 713.6,43.6 876.0,43.6" fill="none" stroke="#98a2b3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<polyline points="84.3,77.9 104.6,76.4 145.2,66.8 226.4,66.8 388.8,66.8 551.2,66.8 713.6,66.8 876.0,66.8" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="730" y="24" font-size="12" fill="#b45309">validation</text>
+<text x="812" y="24" font-size="12" fill="#667085">train dashed</text>
+<text x="450.0" y="318" text-anchor="middle" font-size="12" fill="#667085">Trees in forest, epoch proxy</text>
+</svg></section>
+<section><svg viewBox="0 0 900 320" role="img" aria-label="Macro F1">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="64" y="26" font-size="18" font-weight="700" fill="#101828">Macro F1</text>
+<line x1="64" x2="876" y1="272.0" y2="272.0" stroke="#e4e7ec"/>
+<text x="56" y="276.0" text-anchor="end" font-size="12" fill="#667085">0.0%</text>
+<line x1="64" x2="876" y1="226.0" y2="226.0" stroke="#e4e7ec"/>
+<text x="56" y="230.0" text-anchor="end" font-size="12" fill="#667085">20.0%</text>
+<line x1="64" x2="876" y1="180.0" y2="180.0" stroke="#e4e7ec"/>
+<text x="56" y="184.0" text-anchor="end" font-size="12" fill="#667085">40.0%</text>
+<line x1="64" x2="876" y1="134.0" y2="134.0" stroke="#e4e7ec"/>
+<text x="56" y="138.0" text-anchor="end" font-size="12" fill="#667085">60.0%</text>
+<line x1="64" x2="876" y1="88.0" y2="88.0" stroke="#e4e7ec"/>
+<text x="56" y="92.0" text-anchor="end" font-size="12" fill="#667085">80.0%</text>
+<line x1="64" x2="876" y1="42.0" y2="42.0" stroke="#e4e7ec"/>
+<text x="56" y="46.0" text-anchor="end" font-size="12" fill="#667085">100.0%</text>
+<line x1="84.3" x2="84.3" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="84.3" y="304" text-anchor="middle" font-size="11" fill="#667085">5</text>
+<line x1="104.6" x2="104.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="104.6" y="304" text-anchor="middle" font-size="11" fill="#667085">10</text>
+<line x1="145.2" x2="145.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="145.2" y="304" text-anchor="middle" font-size="11" fill="#667085">20</text>
+<line x1="226.4" x2="226.4" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="226.4" y="304" text-anchor="middle" font-size="11" fill="#667085">40</text>
+<line x1="388.8" x2="388.8" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="388.8" y="304" text-anchor="middle" font-size="11" fill="#667085">80</text>
+<line x1="551.2" x2="551.2" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="551.2" y="304" text-anchor="middle" font-size="11" fill="#667085">120</text>
+<line x1="713.6" x2="713.6" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="713.6" y="304" text-anchor="middle" font-size="11" fill="#667085">160</text>
+<line x1="876.0" x2="876.0" y1="272" y2="277" stroke="#98a2b3"/>
+<text x="876.0" y="304" text-anchor="middle" font-size="11" fill="#667085">200</text>
+<polyline points="84.3,46.7 104.6,45.5 145.2,43.8 226.4,43.6 388.8,43.6 551.2,43.6 713.6,43.3 876.0,43.3" fill="none" stroke="#98a2b3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<polyline points="84.3,125.6 104.6,121.3 145.2,116.9 226.4,116.9 388.8,116.9 551.2,116.9 713.6,116.9 876.0,116.9" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="730" y="24" font-size="12" fill="#0f766e">validation</text>
+<text x="812" y="24" font-size="12" fill="#667085">train dashed</text>
+<text x="450.0" y="318" text-anchor="middle" font-size="12" fill="#667085">Trees in forest, epoch proxy</text>
+</svg></section>
+</body>
+</html>

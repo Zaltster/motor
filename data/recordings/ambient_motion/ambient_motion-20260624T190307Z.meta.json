@@ -1,0 +1,18 @@
+{
+  "sessionId": "ambient_motion-20260624T190307Z",
+  "label": "ambient_motion",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782327787.3766341,
+  "duration": 9.725609562999168,
+  "triggerDemo": false,
+  "demoResponse": null,
+  "notes": "dashboard Ambient motion recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782327797.115346,
+  "events": 290,
+  "counts": {
+    "FA:91:56:1E:26:15": 97,
+    "D1:6E:A1:15:03:57": 97,
+    "D0:99:8C:48:4D:38": 96
+  }
+}

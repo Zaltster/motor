@@ -1,0 +1,298 @@
+[
+  {
+    "windowSeconds": 1.0,
+    "strideSeconds": 0.5,
+    "recordings": 41,
+    "windows": 1289,
+    "labelWindows": {
+      "ambient_motion": 405,
+      "earthquake": 384,
+      "no_motion": 500
+    },
+    "accuracy": 0.8223429014740109,
+    "macroF1": 0.8104454221303939,
+    "weightedF1": 0.8168091049573543,
+    "meanConfidence": 0.816727144226401,
+    "meanCorrectConfidence": 0.8319772652318995,
+    "meanWrongConfidence": 0.7461370644629591,
+    "classificationReport": {
+      "no_motion": {
+        "precision": 0.8045977011494253,
+        "recall": 0.98,
+        "f1-score": 0.8836789900811542,
+        "support": 500.0
+      },
+      "ambient_motion": {
+        "precision": 0.800498753117207,
+        "recall": 0.7925925925925926,
+        "f1-score": 0.7965260545905707,
+        "support": 405.0
+      },
+      "earthquake": {
+        "precision": 0.8924731182795699,
+        "recall": 0.6484375,
+        "f1-score": 0.751131221719457,
+        "support": 384.0
+      },
+      "accuracy": 0.8223429014740109,
+      "macro avg": {
+        "precision": 0.8325231908487342,
+        "recall": 0.8070100308641975,
+        "f1-score": 0.8104454221303939,
+        "support": 1289.0
+      },
+      "weighted avg": {
+        "precision": 0.8294883809205091,
+        "recall": 0.8223429014740109,
+        "f1-score": 0.8168091049573543,
+        "support": 1289.0
+      }
+    },
+    "confusionMatrix": [
+      [
+        490,
+        6,
+        4
+      ],
+      [
+        58,
+        321,
+        26
+      ],
+      [
+        61,
+        74,
+        249
+      ]
+    ],
+    "labels": [
+      "no_motion",
+      "ambient_motion",
+      "earthquake"
+    ],
+    "modelPath": "models/window_eval/window_1s/motion_random_forest.joblib",
+    "manifestPath": "models/window_eval/window_1s/motion_random_forest.manifest.json"
+  },
+  {
+    "windowSeconds": 2.0,
+    "strideSeconds": 0.5,
+    "recordings": 41,
+    "windows": 1207,
+    "labelWindows": {
+      "ambient_motion": 367,
+      "earthquake": 362,
+      "no_motion": 478
+    },
+    "accuracy": 0.831814415907208,
+    "macroF1": 0.8222754425905855,
+    "weightedF1": 0.8283444880149863,
+    "meanConfidence": 0.8465432332732861,
+    "meanCorrectConfidence": 0.8648614672363008,
+    "meanWrongConfidence": 0.7559446771212336,
+    "classificationReport": {
+      "no_motion": {
+        "precision": 0.8237410071942446,
+        "recall": 0.9581589958158996,
+        "f1-score": 0.8858800773694391,
+        "support": 478.0
+      },
+      "ambient_motion": {
+        "precision": 0.8314285714285714,
+        "recall": 0.7929155313351499,
+        "f1-score": 0.8117154811715481,
+        "support": 367.0
+      },
+      "earthquake": {
+        "precision": 0.8471760797342193,
+        "recall": 0.7044198895027625,
+        "f1-score": 0.7692307692307693,
+        "support": 362.0
+      },
+      "accuracy": 0.831814415907208,
+      "macro avg": {
+        "precision": 0.834115219452345,
+        "recall": 0.8184981388846039,
+        "f1-score": 0.8222754425905855,
+        "support": 1207.0
+      },
+      "weighted avg": {
+        "precision": 0.8331070654655527,
+        "recall": 0.831814415907208,
+        "f1-score": 0.8283444880149863,
+        "support": 1207.0
+      }
+    },
+    "confusionMatrix": [
+      [
+        458,
+        5,
+        15
+      ],
+      [
+        45,
+        291,
+        31
+      ],
+      [
+        53,
+        54,
+        255
+      ]
+    ],
+    "labels": [
+      "no_motion",
+      "ambient_motion",
+      "earthquake"
+    ],
+    "modelPath": "models/window_eval/window_2s/motion_random_forest.joblib",
+    "manifestPath": "models/window_eval/window_2s/motion_random_forest.manifest.json"
+  },
+  {
+    "windowSeconds": 5.0,
+    "strideSeconds": 0.5,
+    "recordings": 41,
+    "windows": 961,
+    "labelWindows": {
+      "ambient_motion": 253,
+      "earthquake": 296,
+      "no_motion": 412
+    },
+    "accuracy": 0.841831425598335,
+    "macroF1": 0.8307399662890992,
+    "weightedF1": 0.8398290589120229,
+    "meanConfidence": 0.8610067943811196,
+    "meanCorrectConfidence": 0.8777933640925446,
+    "meanWrongConfidence": 0.7716624858512325,
+    "classificationReport": {
+      "no_motion": {
+        "precision": 0.8520971302428256,
+        "recall": 0.9368932038834952,
+        "f1-score": 0.892485549132948,
+        "support": 412.0
+      },
+      "ambient_motion": {
+        "precision": 0.8377192982456141,
+        "recall": 0.7549407114624506,
+        "f1-score": 0.7941787941787942,
+        "support": 253.0
+      },
+      "earthquake": {
+        "precision": 0.8285714285714286,
+        "recall": 0.7837837837837838,
+        "f1-score": 0.8055555555555556,
+        "support": 296.0
+      },
+      "accuracy": 0.841831425598335,
+      "macro avg": {
+        "precision": 0.8394626190199562,
+        "recall": 0.8252058997099098,
+        "f1-score": 0.8307399662890992,
+        "support": 961.0
+      },
+      "weighted avg": {
+        "precision": 0.8410657054873334,
+        "recall": 0.841831425598335,
+        "f1-score": 0.8398290589120229,
+        "support": 961.0
+      }
+    },
+    "confusionMatrix": [
+      [
+        386,
+        8,
+        18
+      ],
+      [
+        32,
+        191,
+        30
+      ],
+      [
+        35,
+        29,
+        232
+      ]
+    ],
+    "labels": [
+      "no_motion",
+      "ambient_motion",
+      "earthquake"
+    ],
+    "modelPath": "models/window_eval/window_5s/motion_random_forest.joblib",
+    "manifestPath": "models/window_eval/window_5s/motion_random_forest.manifest.json"
+  },
+  {
+    "windowSeconds": 10.0,
+    "strideSeconds": 0.5,
+    "recordings": 41,
+    "windows": 685,
+    "labelWindows": {
+      "ambient_motion": 143,
+      "earthquake": 217,
+      "no_motion": 325
+    },
+    "accuracy": 0.8423357664233576,
+    "macroF1": 0.8102211807433223,
+    "weightedF1": 0.839384106453061,
+    "meanConfidence": 0.8065511634935776,
+    "meanCorrectConfidence": 0.8089365277563219,
+    "meanWrongConfidence": 0.7938071340528046,
+    "classificationReport": {
+      "no_motion": {
+        "precision": 0.8846153846153846,
+        "recall": 0.92,
+        "f1-score": 0.9019607843137255,
+        "support": 325.0
+      },
+      "ambient_motion": {
+        "precision": 0.7258064516129032,
+        "recall": 0.6293706293706294,
+        "f1-score": 0.6741573033707865,
+        "support": 143.0
+      },
+      "earthquake": {
+        "precision": 0.8430493273542601,
+        "recall": 0.8663594470046083,
+        "f1-score": 0.8545454545454545,
+        "support": 217.0
+      },
+      "accuracy": 0.8423357664233576,
+      "macro avg": {
+        "precision": 0.8178237211941827,
+        "recall": 0.8052433587917459,
+        "f1-score": 0.8102211807433223,
+        "support": 685.0
+      },
+      "weighted avg": {
+        "precision": 0.838294929367182,
+        "recall": 0.8423357664233576,
+        "f1-score": 0.839384106453061,
+        "support": 685.0
+      }
+    },
+    "confusionMatrix": [
+      [
+        299,
+        22,
+        4
+      ],
+      [
+        22,
+        90,
+        31
+      ],
+      [
+        17,
+        12,
+        188
+      ]
+    ],
+    "labels": [
+      "no_motion",
+      "ambient_motion",
+      "earthquake"
+    ],
+    "modelPath": "models/window_eval/window_10s/motion_random_forest.joblib",
+    "manifestPath": "models/window_eval/window_10s/motion_random_forest.manifest.json"
+  }
+]
