@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rumble Monitor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <h1>Rumble Monitor</h1>
+          <p id="sensorStatus">Waiting for sensor stream</p>
+        </div>
+        <div class="status">
+          <span id="connectionDot" class="dot"></span>
+          <span id="connectionText">Connecting</span>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="control">
+          <label for="duration">Duration</label>
+          <div class="row">
+            <input id="duration" type="range" min="0.25" max="10" step="0.25" value="2" />
+            <output id="durationOut">2.00s</output>
+          </div>
+        </div>
+        <div class="control">
+          <label for="duty">Max strength</label>
+          <div class="row">
+            <input id="duty" type="range" min="0" max="1" step="0.05" value="1" />
+            <output id="dutyOut">100%</output>
+          </div>
+        </div>
+        <div class="control">
+          <label for="cycle">Pulse cycle</label>
+          <div class="row">
+            <input id="cycle" type="range" min="0.05" max="1" step="0.05" value="0.2" />
+            <output id="cycleOut">0.20s</output>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="earthquakeBtn" type="button">Start Earthquake</button>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <div class="metric">
+          <span>Rumble</span>
+          <strong id="rumbleValue">0%</strong>
+        </div>
+        <div class="metric">
+          <span>Total shake</span>
+          <strong id="accelValue">--</strong>
+        </div>
+        <div class="metric">
+          <span>Sensors</span>
+          <strong id="axisValue">--</strong>
+        </div>
+      </section>
+
+      <section class="graphs">
+        <article>
+          <header>
+            <h2>Commanded rumble</h2>
+            <span id="rumbleState">Idle</span>
+          </header>
+          <canvas id="rumbleChart" width="900" height="260"></canvas>
+        </article>
+        <article>
+          <header>
+            <h2>Total Shake</h2>
+            <span id="sensorKind">Waiting for wired WIT data</span>
+          </header>
+          <canvas id="sensorSumChart" width="900" height="260"></canvas>
+          <div class="sensor-grid">
+            <section class="sensor-panel" data-sensor-id="/dev/ttyUSB0">
+              <header>
+                <h3>Top Floor</h3>
+                <span data-sensor-readout="/dev/ttyUSB0">--</span>
+              </header>
+              <canvas data-sensor-chart="/dev/ttyUSB0" width="320" height="220"></canvas>
+            </section>
+            <section class="sensor-panel" data-sensor-id="/dev/ttyUSB1">
+              <header>
+                <h3>Middle Floor</h3>
+                <span data-sensor-readout="/dev/ttyUSB1">--</span>
+              </header>
+              <canvas data-sensor-chart="/dev/ttyUSB1" width="320" height="220"></canvas>
+            </section>
+            <section class="sensor-panel" data-sensor-id="/dev/ttyUSB2">
+              <header>
+                <h3>Bottom Floor</h3>
+                <span data-sensor-readout="/dev/ttyUSB2">--</span>
+              </header>
+              <canvas data-sensor-chart="/dev/ttyUSB2" width="320" height="220"></canvas>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

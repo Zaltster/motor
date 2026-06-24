@@ -1,8 +1,9 @@
 [project]
-name = "motor-probe"
+name = "rumble-ui"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
 motor_probe = "motor_probe:main"
+rumble_ui = "rumble_ui:main"

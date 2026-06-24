@@ -1,21 +1,57 @@
 {
-  "appId": "motor-probe",
+  "appId": "rumble_ui",
   "version": "0.1.0",
   "platform": "wendyos",
   "language": "python",
   "entitlements": [
     {
-      "type": "network"
+      "type": "network",
+      "mode": "host"
     },
     {
       "type": "gpio",
       "pins": [
+        12,
+        17,
         18
       ]
     },
     {
-      "type": "spi"
+      "type": "usb"
+    },
+    {
+      "type": "serial",
+      "device": "ttyUSB0"
+    },
+    {
+      "type": "serial",
+      "device": "ttyUSB1"
+    },
+    {
+      "type": "serial",
+      "device": "ttyUSB2"
     }
   ],
+  "readiness": {
+    "tcpSocket": {
+      "port": 8000
+    },
+    "timeoutSeconds": 30
+  },
+  "hooks": {
+    "postStart": {
+      "openURL": "http://${WENDY_HOSTNAME}:8000/"
+    }
+  },
+  "run": {
+    "args": [
+      "python3",
+      "rumble_ui.py",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8000"
+    ]
+  },
   "python": {}
 }
