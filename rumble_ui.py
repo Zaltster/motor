@@ -41,6 +41,10 @@ WIT_NOTIFY_UUIDS = {
     "49535343-1e4d-4bd9-ba61-23c647249616",
 }
 
+WIT_SERVICE_UUIDS = {
+    "0000ffe5-0000-1000-8000-00805f9a34fb",
+}
+
 
 class EventBus:
     def __init__(self) -> None:
@@ -449,6 +453,7 @@ class SensorReader:
         mode: str,
         ble_names: list[str],
         ble_addresses: list[str],
+        ble_service_uuids: list[str],
         max_ble_devices: int,
         classifier: SensorClassifier | None = None,
     ) -> None:
@@ -459,6 +464,7 @@ class SensorReader:
         self.mode = mode
         self.ble_names = ble_names
         self.ble_addresses = [address.upper() for address in ble_addresses]
+        self.ble_service_uuids = [uuid.lower() for uuid in ble_service_uuids]
         self.max_ble_devices = max_ble_devices
         self.classifier = classifier
         self._stop = threading.Event()
@@ -592,18 +598,27 @@ class SensorReader:
                 "state": "ble-ready",
                 "names": self.ble_names,
                 "addresses": self.ble_addresses,
+                "serviceUuids": self.ble_service_uuids,
             }
         )
         while not self._stop.is_set():
             self.bus.publish({"type": "sensorStatus", "state": "scanning", "message": "Scanning for WIT BLE sensors"})
-            devices = await BleakScanner.discover(timeout=15.0)
+            discovered = await BleakScanner.discover(
+                timeout=30.0,
+                return_adv=True,
+                service_uuids=self.ble_service_uuids or list(WIT_SERVICE_UUIDS),
+            )
             targets = [
-                device
-                for device in devices
-                if any(token in ((device.name or "").upper()) for token in wanted)
+                (device, advertisement)
+                for device, advertisement in discovered.values()
+                if any(token in ((device.name or advertisement.local_name or "").upper()) for token in wanted)
                 or device.address.upper() in self.ble_addresses
+                or any(
+                    service_uuid.lower() in self.ble_service_uuids or service_uuid.lower() in WIT_SERVICE_UUIDS
+                    for service_uuid in advertisement.service_uuids
+                )
             ]
-            targets = sorted(targets, key=lambda device: getattr(device, "rssi", -999) or -999, reverse=True)
+            targets = sorted(targets, key=lambda target: target[1].rssi or -999, reverse=True)
             targets = targets[: self.max_ble_devices]
             self.bus.publish(
                 {
@@ -613,10 +628,10 @@ class SensorReader:
                     "devices": [
                         {
                             "address": device.address,
-                            "name": device.name or device.address,
-                            "rssi": getattr(device, "rssi", None),
+                            "name": device.name or advertisement.local_name or device.address,
+                            "rssi": advertisement.rssi,
                         }
-                        for device in targets
+                        for device, advertisement in targets
                     ],
                 }
             )
@@ -625,8 +640,14 @@ class SensorReader:
                 continue
 
             tasks = [
-                asyncio.create_task(self._read_ble_device(device, delay=index * 4.0))
-                for index, device in enumerate(targets)
+                asyncio.create_task(
+                    self._read_ble_device(
+                        device,
+                        sensor_name=device.name or advertisement.local_name or device.address,
+                        delay=index * 4.0,
+                    )
+                )
+                for index, (device, advertisement) in enumerate(targets)
             ]
             try:
                 await asyncio.gather(*tasks)
@@ -638,29 +659,20 @@ class SensorReader:
                         await task
             await asyncio.sleep(1.0)
 
-    async def _read_ble_device(self, device: Any, delay: float = 0.0) -> None:
+    async def _read_ble_device(self, device: Any, sensor_name: str, delay: float = 0.0) -> None:
         from bleak import BleakClient
 
         sensor_id = device.address
-        sensor_name = device.name or device.address
         buffer = bytearray()
         if delay:
             await asyncio.sleep(delay)
 
         def on_notify(_sender: Any, data: bytearray) -> None:
             buffer.extend(data)
-            while len(buffer) >= 11:
-                start = buffer.find(0x55)
-                if start < 0:
-                    buffer.clear()
-                    return
-                if start:
-                    del buffer[:start]
-                if len(buffer) < 11:
-                    return
-                packet = bytes(buffer[:11])
-                del buffer[:11]
-                event = parse_wit_packet(packet)
+            while True:
+                event = read_wit_event(buffer)
+                if event is None:
+                    break
                 if event is not None:
                     event["sensorId"] = sensor_id
                     event["sensorName"] = sensor_name
@@ -844,6 +856,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sensor-mode", choices=["auto", "ble", "serial"], default=os.environ.get("SENSOR_MODE", "auto"))
     parser.add_argument("--ble-name", action="append", default=None)
     parser.add_argument("--ble-address", action="append", default=None)
+    parser.add_argument("--ble-service-uuid", action="append", default=None)
     parser.add_argument("--max-ble-devices", type=int, default=int(os.environ.get("MAX_BLE_DEVICES", "3")))
     parser.add_argument("--simulate-sensor", action="store_true", default=os.environ.get("SIMULATE_SENSOR") == "1")
     parser.add_argument("--dry-run", action="store_true", default=os.environ.get("MOTOR_DRY_RUN") == "1")
@@ -857,6 +870,10 @@ def main() -> int:
     classifier = SensorClassifier(bus, controller)
     ble_names = args.ble_name or os.environ.get("WIT_BLE_NAMES", "WTVB,WIT,WT").split(",")
     ble_addresses = args.ble_address or os.environ.get("WIT_BLE_ADDRESSES", "").split(",")
+    ble_service_uuids = args.ble_service_uuid or os.environ.get(
+        "WIT_BLE_SERVICE_UUIDS",
+        ",".join(sorted(WIT_SERVICE_UUIDS)),
+    ).split(",")
     serial_ports = []
     if args.sensor_ports:
         serial_ports.extend(port.strip() for port in args.sensor_ports.split(",") if port.strip())
@@ -870,6 +887,7 @@ def main() -> int:
         args.sensor_mode,
         [name.strip() for name in ble_names if name.strip()],
         [address.strip() for address in ble_addresses if address.strip()],
+        [uuid.strip() for uuid in ble_service_uuids if uuid.strip()],
         args.max_ble_devices,
         classifier,
     )

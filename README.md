@@ -39,6 +39,23 @@ The Wendy app is BLE-capable through the `bluetooth` entitlement and the
 `bleak` Python package. The current bench setup still keeps serial/USB
 entitlements because the verified sensors today are wired WIT adapters.
 
+Verified WIT BLE details:
+
+| Purpose | UUID |
+| --- | --- |
+| Advertised service filter | `0000ffe5-0000-1000-8000-00805f9a34fb` |
+| Notification characteristic | `0000ffe4-0000-1000-8000-00805f9a34fb` |
+
+Mac-side BLE test:
+
+```bash
+.venv/bin/python tools/ble_wit_stream.py \
+  --scan-seconds 30 \
+  --stream-seconds 10 \
+  --max-devices 3 \
+  --scan-service-uuid 0000ffe5-0000-1000-8000-00805f9a34fb
+```
+
 Floor sensor mapping:
 
 | Floor label | Serial device |
@@ -97,6 +114,12 @@ For laptop/UI testing without touching hardware:
 
 ```bash
 MOTOR_DRY_RUN=1 SIMULATE_SENSOR=1 python3 rumble_ui.py --host 127.0.0.1 --port 8000
+```
+
+For BLE sensor mode:
+
+```bash
+SENSOR_MODE=ble WIT_BLE_SERVICE_UUIDS=0000ffe5-0000-1000-8000-00805f9a34fb python3 rumble_ui.py --host 0.0.0.0 --port 8000
 ```
 
 For frontend development:

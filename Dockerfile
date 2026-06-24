@@ -13,7 +13,8 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     SENSOR_MODE=auto \
     WIT_SERIAL_PORTS=/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2 \
-    WIT_BAUD=115200
+    WIT_BAUD=115200 \
+    WIT_BLE_SERVICE_UUIDS=0000ffe5-0000-1000-8000-00805f9a34fb
 
 RUN pip install --no-cache-dir "bleak>=0.22,<1"
 
