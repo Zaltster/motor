@@ -1,0 +1,25 @@
+{
+  "sessionId": "earthquake-20260626T152052Z",
+  "label": "earthquake",
+  "baseUrl": "http://169.254.35.5:8000",
+  "startedAt": 1782487252.039221,
+  "duration": 8.756006316399048,
+  "triggerDemo": true,
+  "demoResponse": {
+    "ok": true,
+    "demo": {
+      "type": "demo",
+      "state": "idle",
+      "duration": 20.0,
+      "delay": 0.0,
+      "elapsed": 0.0,
+      "duty": 0.0,
+      "dryRun": false
+    }
+  },
+  "notes": "dashboard Earthquake recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782487260.86114,
+  "events": 0,
+  "counts": {}
+}

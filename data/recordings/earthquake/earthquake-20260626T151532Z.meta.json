@@ -1,0 +1,34 @@
+{
+  "sessionId": "earthquake-20260626T151532Z",
+  "label": "earthquake",
+  "baseUrl": "http://192.168.0.196:8000",
+  "startedAt": 1782486932.401288,
+  "duration": 6.181823187329758,
+  "triggerDemo": true,
+  "demoResponse": {
+    "ok": true,
+    "demo": {
+      "type": "demo",
+      "state": "complete",
+      "duration": 7.5315607751051505,
+      "delay": 0.0,
+      "elapsed": 7.5315607751051505,
+      "duty": 0.0,
+      "dryRun": false,
+      "mode": "earthquake",
+      "minDuty": 0.05,
+      "maxDuty": 1.0,
+      "cycle": 0.23389231360188556,
+      "delayRemaining": 0.0
+    }
+  },
+  "notes": "dashboard Earthquake recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782486938.602657,
+  "events": 184,
+  "counts": {
+    "D0:99:8C:48:4D:38": 61,
+    "FA:91:56:1E:26:15": 62,
+    "D1:6E:A1:15:03:57": 61
+  }
+}

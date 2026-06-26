@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS frontend
+FROM --platform=linux/arm64 node:22-bookworm-slim AS frontend
 
 WORKDIR /src
 
@@ -6,7 +6,7 @@ COPY package.json package-lock.json tsconfig.json vite.config.ts ./
 COPY frontend ./frontend
 RUN npm ci && npm run build
 
-FROM python:3.12-slim-bookworm
+FROM --platform=linux/arm64 python:3.12-slim-bookworm
 
 WORKDIR /app
 
@@ -14,7 +14,9 @@ ENV PYTHONUNBUFFERED=1 \
     SENSOR_MODE=auto \
     WIT_SERIAL_PORTS=/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2 \
     WIT_BAUD=115200 \
-    WIT_BLE_SERVICE_UUIDS=0000ffe5-0000-1000-8000-00805f9a34fb
+    WIT_BLE_SERVICE_UUIDS=0000ffe5-0000-1000-8000-00805f9a34fb \
+    LILYGO_DISPLAY_PORT=/dev/ttyACM0 \
+    LILYGO_DISPLAY_BAUD=115200
 
 RUN pip install --no-cache-dir "bleak>=0.22,<1"
 

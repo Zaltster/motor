@@ -1,0 +1,18 @@
+{
+  "sessionId": "no_motion-20260626T155436Z",
+  "label": "no_motion",
+  "baseUrl": "http://169.254.35.5:8000",
+  "startedAt": 1782489276.7076962,
+  "duration": 9.245863360292606,
+  "triggerDemo": false,
+  "demoResponse": null,
+  "notes": "dashboard No motion recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782489285.9862132,
+  "events": 277,
+  "counts": {
+    "FA:91:56:1E:26:15": 93,
+    "D0:99:8C:48:4D:38": 92,
+    "D1:6E:A1:15:03:57": 92
+  }
+}

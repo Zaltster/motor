@@ -187,7 +187,7 @@ def record(args: argparse.Namespace) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Record labeled vibration tower sensor data.")
-    parser.add_argument("label", choices=["no_motion", "ambient_motion", "earthquake"])
+    parser.add_argument("label", choices=["no_motion", "ambient_motion", "slap", "earthquake"])
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--duration", type=float, default=45.0)
     parser.add_argument("--output-dir", default="data/recordings")

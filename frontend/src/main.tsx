@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, AlertTriangle, Brain, CircleStop, Play, RadioTower, Waves } from "lucide-react";
+import { Activity, AlertTriangle, Brain, CircleStop, Play, RadioTower } from "lucide-react";
 import "./styles.css";
 
 type DemoState = {
@@ -40,17 +40,7 @@ type SensorStatusEvent = {
   message?: string;
 };
 
-type ClassificationEvent = {
-  type: "classification";
-  label: "No motion" | "Non-Earthquake motion detected" | "Earthquake detected";
-  confidence: number;
-  activeSensors: number;
-  energizedSensors: number;
-  sustainedSensors?: number;
-  totalShake: number;
-};
-
-type EventPayload = DemoState | SensorEvent | SensorStatusEvent | ClassificationEvent;
+type EventPayload = DemoState | SensorEvent | SensorStatusEvent;
 
 type Sample = { t: number; value: number };
 type MlPrediction = {
@@ -76,15 +66,38 @@ type SensorState = {
   lastSeen: number;
 };
 
-type TrainingLabel = "no_motion" | "ambient_motion" | "earthquake";
+type TrainingLabel = "no_motion" | "ambient_motion" | "slap" | "earthquake";
+type TrainingCounts = Record<TrainingLabel, number>;
+type TrainingReadiness = {
+  ready: boolean;
+  connectedCount: number;
+  expectedCount: number;
+  missing: string[];
+  staleSeconds: number;
+};
+type SessionRecorderStatus = {
+  active: boolean;
+  message?: string;
+  sessionId?: string;
+  startedAt?: number;
+  duration?: number;
+  sensorEvents?: number;
+  predictionEvents?: number;
+  output?: string;
+  error?: string;
+};
 
 const floorLabels: Record<string, string> = {
   "/dev/ttyUSB0": "Top Floor",
   "/dev/ttyUSB1": "Middle Floor",
   "/dev/ttyUSB2": "Bottom Floor",
+  "D0:99:8C:48:4D:38": "Top Floor",
+  "D1:6E:A1:15:03:57": "Middle Floor",
+  "FA:91:56:1E:26:15": "Bottom Floor",
 };
 
 const floorOrder = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"];
+const bleFloorOrder = ["D0:99:8C:48:4D:38", "D1:6E:A1:15:03:57", "FA:91:56:1E:26:15"];
 
 const initialDemo: DemoState = {
   type: "demo",
@@ -186,13 +199,16 @@ function Chart({ samples, color, max, label }: { samples: Sample[]; color: strin
 function App() {
   const [connected, setConnected] = useState(false);
   const [demo, setDemo] = useState<DemoState>(initialDemo);
-  const [classification, setClassification] = useState<ClassificationEvent | null>(null);
   const [sensorStatus, setSensorStatus] = useState("Waiting for sensors");
   const [sensors, setSensors] = useState<Record<string, SensorState>>({});
   const [rumbleSamples, setRumbleSamples] = useState<Sample[]>([]);
   const [totalSamples, setTotalSamples] = useState<Sample[]>([]);
   const [trainingStatus, setTrainingStatus] = useState("Local recorder idle");
+  const [trainingCounts, setTrainingCounts] = useState<TrainingCounts>({ no_motion: 0, ambient_motion: 0, slap: 0, earthquake: 0 });
+  const [trainingReadiness, setTrainingReadiness] = useState<TrainingReadiness | null>(null);
   const [mlPrediction, setMlPrediction] = useState<MlPrediction | null>(null);
+  const [sessionRecorder, setSessionRecorder] = useState<SessionRecorderStatus>({ active: false, message: "ready" });
+  const [sessionStatus, setSessionStatus] = useState("Session recorder idle");
 
   useEffect(() => {
     fetch("/api/demo/state")
@@ -216,16 +232,12 @@ function App() {
         else if (event.state === "error") setSensorStatus(event.message || "Sensor error");
         else setSensorStatus(event.state.replaceAll("_", " "));
       }
-      if (event.type === "classification") {
-        setClassification(event);
-        setTotalSamples((samples) => pushSample(samples, event.totalShake));
-      }
       if (event.type === "sensor" && (event.packet === "accel" || event.packet === "wide61")) {
         setSensors((current) => {
           const id = event.sensorId;
           const previous = current[id];
           const value = Number(event.accelMag || 0);
-          return {
+          const next = {
             ...current,
             [id]: {
               id,
@@ -239,6 +251,9 @@ function App() {
               samples: pushSample(previous?.samples || [], value, event.ts),
             },
           };
+          const total = Object.values(next).reduce((sum, sensor) => sum + sensor.value, 0);
+          setTotalSamples((samples) => pushSample(samples, total, event.ts));
+          return next;
         });
       }
     });
@@ -264,6 +279,34 @@ function App() {
         .then((response) => response.json())
         .then((body) => {
           const recorder = body.recorder;
+          if (body.sampleCounts) {
+            setTrainingCounts({
+              no_motion: Number(body.sampleCounts.no_motion || 0),
+              ambient_motion: Number(body.sampleCounts.ambient_motion || 0),
+              slap: Number(body.sampleCounts.slap || 0),
+              earthquake: Number(body.sampleCounts.earthquake || 0),
+            });
+          }
+          if (body.sensorReadiness) {
+            setTrainingReadiness({
+              ready: Boolean(body.sensorReadiness.ready),
+              connectedCount: Number(body.sensorReadiness.connectedCount || 0),
+              expectedCount: Number(body.sensorReadiness.expectedCount || 0),
+              missing: Array.isArray(body.sensorReadiness.missing) ? body.sensorReadiness.missing.map(String) : [],
+              staleSeconds: Number(body.sensorReadiness.staleSeconds || 0),
+            });
+          }
+          if (body.sessionRecorder) {
+            const session = body.sessionRecorder as SessionRecorderStatus;
+            setSessionRecorder(session);
+            if (session.active) {
+              setSessionStatus(`Recording ${session.sensorEvents || 0} sensor rows, ${session.predictionEvents || 0} ML rows`);
+            } else if (session.message === "complete") {
+              setSessionStatus(`Saved ${session.sessionId}: ${session.sensorEvents || 0} sensor rows, ${session.predictionEvents || 0} ML rows`);
+            } else if (session.message === "error") {
+              setSessionStatus(session.error || "Session recorder error");
+            }
+          }
           if (!recorder) return;
           if (recorder.active) {
             const duration = Number(recorder.duration || 0);
@@ -297,6 +340,19 @@ function App() {
       lastSeen: 0,
     });
     const serialActive = serialSensors.some((sensor) => sensor.connected);
+    if (!serialActive) {
+      const bleSensors = bleFloorOrder.map((id) => sensors[id] || {
+        id,
+        name: id,
+        label: floorLabels[id],
+        connected: false,
+        value: 0,
+        packet: "",
+        samples: [],
+        lastSeen: 0,
+      });
+      if (bleSensors.some((sensor) => sensor.connected)) return bleSensors;
+    }
     const dynamicSensors = Object.values(sensors)
       .filter((sensor) => !floorOrder.includes(sensor.id))
       .sort((a, b) => a.id.localeCompare(b.id))
@@ -326,8 +382,15 @@ function App() {
     const labels: Record<TrainingLabel, string> = {
       no_motion: "No motion",
       ambient_motion: "Ambient motion",
+      slap: "Slap / impact",
       earthquake: "Earthquake",
     };
+    if (!trainingReadiness?.ready) {
+      const connectedCount = trainingReadiness?.connectedCount ?? 0;
+      const expectedCount = trainingReadiness?.expectedCount ?? 3;
+      setTrainingStatus(`Training blocked: ${connectedCount}/${expectedCount} sensors streaming`);
+      return;
+    }
     setTrainingStatus(`Starting ${labels[label]} recording`);
     try {
       const response = await fetch("http://127.0.0.1:8765/record/start", {
@@ -352,13 +415,66 @@ function App() {
     }
   }
 
+  async function toggleSessionRecording() {
+    if (sessionRecorder.active) {
+      try {
+        const response = await fetch("http://127.0.0.1:8765/session/stop", { method: "POST" });
+        const body = await response.json();
+        if (!body.ok) {
+          setSessionStatus(body.error || "Stop session failed");
+          return;
+        }
+        if (body.sessionRecorder) {
+          setSessionRecorder(body.sessionRecorder);
+          setSessionStatus(
+            `Saved ${body.sessionRecorder.sessionId}: ${body.sessionRecorder.sensorEvents || 0} sensor rows, ${body.sessionRecorder.predictionEvents || 0} ML rows`,
+          );
+        }
+      } catch {
+        setSessionStatus("Session recorder unavailable");
+      }
+      return;
+    }
+    if (!trainingReadiness?.ready) {
+      const connectedCount = trainingReadiness?.connectedCount ?? 0;
+      const expectedCount = trainingReadiness?.expectedCount ?? 3;
+      setSessionStatus(`Recording blocked: ${connectedCount}/${expectedCount} sensors streaming`);
+      return;
+    }
+    try {
+      const response = await fetch("http://127.0.0.1:8765/session/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: "dashboard sensor and ML session recording" }),
+      });
+      const body = await response.json();
+      if (!body.ok) {
+        setSessionStatus(body.error || "Start session failed");
+        return;
+      }
+      if (body.sessionRecorder) {
+        setSessionRecorder(body.sessionRecorder);
+        setSessionStatus(`Recording ${body.sessionRecorder.sessionId}`);
+      }
+    } catch {
+      setSessionStatus("Start local recorder: python3 tools/local_training_recorder.py");
+    }
+  }
+
   const activeSensors = orderedSensors.filter((sensor) => sensor.connected).length;
-  const totalShake = classification?.totalShake || orderedSensors.reduce((sum, sensor) => sum + sensor.value, 0);
+  const totalShake = orderedSensors.reduce((sum, sensor) => sum + sensor.value, 0);
   const busy = demo.state === "armed" || demo.state === "waiting_random_delay" || demo.state === "running";
   const mlLabel = mlPrediction?.ready
     ? mlPrediction.displayLabel || mlPrediction.prediction?.replaceAll("_", " ")
     : mlPrediction?.message || "Waiting";
   const mlConfidence = mlPrediction?.confidence == null ? null : Math.round(mlPrediction.confidence * 100);
+  const trainingReady = trainingReadiness?.ready === true;
+  const trainingReadinessText = trainingReadiness
+    ? trainingReadiness.ready
+      ? `Ready: ${trainingReadiness.connectedCount}/${trainingReadiness.expectedCount} sensors streaming`
+      : `Blocked: ${trainingReadiness.connectedCount}/${trainingReadiness.expectedCount} sensors streaming`
+    : "Checking sensors";
+  const sessionActive = sessionRecorder.active === true;
 
   return (
     <main className="shell">
@@ -392,28 +508,68 @@ function App() {
 
       <section className="trainingBar">
         <div>
-          <strong>Training Samples</strong>
-          <span>{trainingStatus}</span>
+          <strong>Session Recording</strong>
+          <span>{sessionStatus}</span>
         </div>
         <div className="actions">
-          <button className="button" onClick={() => startTrainingRecording("no_motion")} title="Record no motion sample">
-            No motion
+          <button
+            className={sessionActive ? "button" : "button primary"}
+            onClick={toggleSessionRecording}
+            disabled={!sessionActive && !trainingReady}
+            title={sessionActive ? "Stop recording sensor and ML stream" : "Record sensor and ML stream"}
+          >
+            {sessionActive ? <CircleStop size={18} /> : <Play size={18} />}
+            {sessionActive ? "Stop recording" : "Record session"}
           </button>
-          <button className="button" onClick={() => startTrainingRecording("ambient_motion")} title="Record ambient motion sample">
-            Ambient motion
+        </div>
+      </section>
+
+      <section className="trainingBar">
+        <div>
+          <strong>Training Samples</strong>
+          <span>{trainingReadinessText} - {trainingStatus}</span>
+        </div>
+        <div className="actions">
+          <button
+            className="button trainingButton"
+            onClick={() => startTrainingRecording("no_motion")}
+            disabled={!trainingReady}
+            title="Record no motion sample"
+          >
+            <span>No motion</span>
+            <small>{trainingCounts.no_motion} samples</small>
           </button>
-          <button className="button" onClick={() => startTrainingRecording("earthquake")} title="Record earthquake sample">
-            Earthquake
+          <button
+            className="button trainingButton"
+            onClick={() => startTrainingRecording("ambient_motion")}
+            disabled={!trainingReady}
+            title="Record ambient motion sample"
+          >
+            <span>Ambient motion</span>
+            <small>{trainingCounts.ambient_motion} samples</small>
+          </button>
+          <button
+            className="button trainingButton"
+            onClick={() => startTrainingRecording("slap")}
+            disabled={!trainingReady}
+            title="Record slap or impact sample"
+          >
+            <span>Slap / impact</span>
+            <small>{trainingCounts.slap} samples</small>
+          </button>
+          <button
+            className="button trainingButton"
+            onClick={() => startTrainingRecording("earthquake")}
+            disabled={!trainingReady}
+            title="Record earthquake sample"
+          >
+            <span>Earthquake</span>
+            <small>{trainingCounts.earthquake} samples</small>
           </button>
         </div>
       </section>
 
       <section className="metrics">
-        <article>
-          <Waves size={18} />
-          <span>Classification</span>
-          <strong>{classification?.label || "No motion"}</strong>
-        </article>
         <article>
           <Brain size={18} />
           <span>ML confidence{mlConfidence == null ? "" : ` ${mlConfidence}%`}</span>
@@ -448,7 +604,7 @@ function App() {
       <section className="panel">
         <header>
           <h2>Total Building Response</h2>
-          <span>{classification ? `${Math.round(classification.confidence * 100)}% confidence` : "No classifier signal"}</span>
+          <span>{activeSensors}/3 sensors</span>
         </header>
         <Chart samples={totalSamples} color="#0f766e" label="Waiting for sensor data" />
       </section>

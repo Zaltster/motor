@@ -1,0 +1,275 @@
+{
+  "model": "models/rf_rhythm_v2_retrained_20260626_175200/window_5s/motion_random_forest.joblib",
+  "manifest": "models/rf_rhythm_v2_retrained_20260626_175200/window_5s/motion_random_forest.manifest.json",
+  "recordingsDir": "data/recordings",
+  "labels": [
+    "ambient_motion",
+    "no_motion",
+    "slap"
+  ],
+  "windowSeconds": 5.0,
+  "strideSeconds": 0.5,
+  "sessions": 145,
+  "windows": 1300,
+  "falseEarthquakeWindows": 0,
+  "falseEarthquakeRate": 0.0,
+  "predictionsByLabel": {
+    "ambient_motion": {
+      "ambient_motion": 343,
+      "no_motion": 7,
+      "slap": 8
+    },
+    "no_motion": {
+      "no_motion": 873
+    },
+    "slap": {
+      "slap": 69
+    }
+  },
+  "worstSessions": [
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T175034Z.jsonl",
+      "sessionId": "ambient_motion-20260624T175034Z",
+      "label": "ambient_motion",
+      "windows": 81,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.2993827412344184,
+      "predictions": {
+        "ambient_motion": 81
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T220149Z.jsonl",
+      "sessionId": "ambient_motion-20260624T220149Z",
+      "label": "ambient_motion",
+      "windows": 4,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.29215296495956883,
+      "predictions": {
+        "ambient_motion": 4
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145718Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145718Z",
+      "label": "ambient_motion",
+      "windows": 10,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.2785439206419261,
+      "predictions": {
+        "ambient_motion": 10
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T174357Z.jsonl",
+      "sessionId": "ambient_motion-20260624T174357Z",
+      "label": "ambient_motion",
+      "windows": 81,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.21048459184807627,
+      "predictions": {
+        "ambient_motion": 74,
+        "no_motion": 7
+      }
+    },
+    {
+      "path": "data/recordings/slap/slap-20260626T173509Z.jsonl",
+      "sessionId": "slap-20260626T173509Z",
+      "label": "slap",
+      "windows": 9,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.08058497385559464,
+      "predictions": {
+        "slap": 9
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145344Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145344Z",
+      "label": "ambient_motion",
+      "windows": 5,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.07712852542661666,
+      "predictions": {
+        "ambient_motion": 5
+      }
+    },
+    {
+      "path": "data/recordings/no_motion/no_motion-20260626T154152Z.jsonl",
+      "sessionId": "no_motion-20260626T154152Z",
+      "label": "no_motion",
+      "windows": 6,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.07707465664701009,
+      "predictions": {
+        "no_motion": 6
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145532Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145532Z",
+      "label": "ambient_motion",
+      "windows": 7,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.07620999487677246,
+      "predictions": {
+        "ambient_motion": 7
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T184837Z.jsonl",
+      "sessionId": "ambient_motion-20260624T184837Z",
+      "label": "ambient_motion",
+      "windows": 11,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.05969007377193094,
+      "predictions": {
+        "ambient_motion": 11
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T185012Z.jsonl",
+      "sessionId": "ambient_motion-20260624T185012Z",
+      "label": "ambient_motion",
+      "windows": 3,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.05344938474632736,
+      "predictions": {
+        "ambient_motion": 3
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145543Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145543Z",
+      "label": "ambient_motion",
+      "windows": 10,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.05325554274405446,
+      "predictions": {
+        "slap": 6,
+        "ambient_motion": 4
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145059Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145059Z",
+      "label": "ambient_motion",
+      "windows": 8,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.049737264847655636,
+      "predictions": {
+        "ambient_motion": 8
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145402Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145402Z",
+      "label": "ambient_motion",
+      "windows": 4,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.04436452678161991,
+      "predictions": {
+        "ambient_motion": 3,
+        "slap": 1
+      }
+    },
+    {
+      "path": "data/recordings/slap/slap-20260626T173639Z.jsonl",
+      "sessionId": "slap-20260626T173639Z",
+      "label": "slap",
+      "windows": 8,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.03501330910673007,
+      "predictions": {
+        "slap": 8
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145032Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145032Z",
+      "label": "ambient_motion",
+      "windows": 10,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.03439522950808737,
+      "predictions": {
+        "ambient_motion": 10
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T215442Z.jsonl",
+      "sessionId": "ambient_motion-20260624T215442Z",
+      "label": "ambient_motion",
+      "windows": 6,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.030928297436055033,
+      "predictions": {
+        "ambient_motion": 6
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145703Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145703Z",
+      "label": "ambient_motion",
+      "windows": 2,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.02760327228949227,
+      "predictions": {
+        "slap": 1,
+        "ambient_motion": 1
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T220215Z.jsonl",
+      "sessionId": "ambient_motion-20260624T220215Z",
+      "label": "ambient_motion",
+      "windows": 1,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.027441229474000385,
+      "predictions": {
+        "ambient_motion": 1
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260626T145142Z.jsonl",
+      "sessionId": "ambient_motion-20260626T145142Z",
+      "label": "ambient_motion",
+      "windows": 4,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.02407956784901004,
+      "predictions": {
+        "ambient_motion": 4
+      }
+    },
+    {
+      "path": "data/recordings/ambient_motion/ambient_motion-20260624T190453Z.jsonl",
+      "sessionId": "ambient_motion-20260624T190453Z",
+      "label": "ambient_motion",
+      "windows": 7,
+      "falseEarthquakeWindows": 0,
+      "falseEarthquakeRate": 0.0,
+      "maxEarthquakeProbability": 0.02353826817525717,
+      "predictions": {
+        "ambient_motion": 7
+      }
+    }
+  ]
+}

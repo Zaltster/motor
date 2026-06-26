@@ -18,6 +18,7 @@ from train_motion_model import DEFAULT_SENSOR_ORDER, LABELS, discover_recordings
 COLORS = {
     "no_motion": "#155eef",
     "ambient_motion": "#b45309",
+    "slap": "#7a5af8",
     "earthquake": "#b42318",
 }
 
@@ -25,6 +26,7 @@ COLORS = {
 DISPLAY_LABELS = {
     "no_motion": "No motion",
     "ambient_motion": "Ambient motion",
+    "slap": "Slap / impact",
     "earthquake": "Earthquake",
 }
 

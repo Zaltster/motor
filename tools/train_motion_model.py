@@ -17,7 +17,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import LeaveOneGroupOut
 
 
-LABELS = ["no_motion", "ambient_motion", "earthquake"]
+LABELS = ["no_motion", "ambient_motion", "slap", "earthquake"]
 DEFAULT_SENSOR_ORDER = [
     "D0:99:8C:48:4D:38",
     "D1:6E:A1:15:03:57",
@@ -27,6 +27,8 @@ THRESHOLDS = [0.01, 0.05, 0.10, 0.50]
 FEATURE_VERSION = "rf_rhythm_v2"
 FREQUENCY_BANDS = [(0.5, 2.0), (2.0, 5.0), (5.0, 10.0)]
 RESAMPLE_HZ = 20.0
+MIN_EARTHQUAKE_WINDOW_MAX = 0.05
+MIN_EARTHQUAKE_WINDOW_RMS = 0.015
 
 
 def load_recording(path: Path) -> tuple[str, str, list[dict[str, Any]]]:
@@ -351,6 +353,18 @@ def build_window_features(
     start = 0.0
     while start + window_seconds <= max_elapsed + 1e-9:
         end = start + window_seconds
+        window_values = [
+            float(value)
+            for points in by_sensor.values()
+            for time_value, value in points
+            if start <= time_value < end
+        ]
+        if label == "earthquake" and window_values:
+            window_max = max(window_values)
+            window_rms = math.sqrt(sum(value * value for value in window_values) / len(window_values))
+            if window_max < MIN_EARTHQUAKE_WINDOW_MAX and window_rms < MIN_EARTHQUAKE_WINDOW_RMS:
+                start += stride_seconds
+                continue
         features.append(make_window_feature_row(by_sensor, sensor_order, start, end))
         labels.append(label)
         groups.append(session_id)

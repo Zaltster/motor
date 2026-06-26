@@ -155,9 +155,25 @@ h3 {
   opacity: 0.5;
 }
 
+.trainingButton {
+  min-width: 150px;
+  min-height: 48px;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.trainingButton small {
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   overflow: hidden;
   margin-top: 14px;

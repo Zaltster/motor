@@ -33,6 +33,10 @@
     {
       "type": "serial",
       "device": "ttyUSB2"
+    },
+    {
+      "type": "serial",
+      "device": "ttyACM0"
     }
   ],
   "readiness": {

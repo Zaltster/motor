@@ -1,0 +1,18 @@
+{
+  "sessionId": "slap-20260626T173609Z",
+  "label": "slap",
+  "baseUrl": "http://169.254.35.5:8000",
+  "startedAt": 1782495369.314348,
+  "duration": 7.829102041744468,
+  "triggerDemo": false,
+  "demoResponse": null,
+  "notes": "dashboard Slap / impact recording",
+  "source": "local_training_recorder",
+  "finishedAt": 1782495377.162108,
+  "events": 234,
+  "counts": {
+    "D1:6E:A1:15:03:57": 78,
+    "FA:91:56:1E:26:15": 78,
+    "D0:99:8C:48:4D:38": 78
+  }
+}

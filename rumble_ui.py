@@ -80,6 +80,133 @@ class EventBus:
                     pass
 
 
+class LilyGoDisplay:
+    def __init__(self, bus: EventBus, port: str, baud: int = 115200) -> None:
+        self.bus = bus
+        self.port = port
+        self.baud = baud
+        self._fd: int | None = None
+        self._next_retry = 0.0
+        self._last_write = 0.0
+        self._state: dict[str, Any] = {
+            "demoState": "idle",
+            "duty": 0.0,
+            "elapsed": 0.0,
+            "duration": 20.0,
+            "label": "No motion",
+            "confidence": 0.0,
+            "totalShake": 0.0,
+            "sensorStatus": "starting",
+        }
+
+    def start(self) -> None:
+        threading.Thread(target=self._run, name="lilygo-display", daemon=True).start()
+
+    def _run(self) -> None:
+        client = self.bus.subscribe()
+        try:
+            self._write(force=True)
+            while True:
+                try:
+                    event = client.get(timeout=1.0)
+                except queue.Empty:
+                    self._write(force=True)
+                    continue
+                if self._apply_event(event):
+                    self._write()
+        finally:
+            self.bus.unsubscribe(client)
+            self._close()
+
+    def _apply_event(self, event: dict[str, Any]) -> bool:
+        event_type = event.get("type")
+        if event_type == "demo":
+            self._state.update(
+                {
+                    "demoState": event.get("state", self._state["demoState"]),
+                    "duty": float(event.get("duty") or 0.0),
+                    "elapsed": float(event.get("elapsed") or 0.0),
+                    "duration": float(event.get("duration") or self._state["duration"]),
+                }
+            )
+            return True
+        if event_type == "classification":
+            self._state.update(
+                {
+                    "label": event.get("label", self._state["label"]),
+                    "confidence": float(event.get("confidence") or 0.0),
+                    "totalShake": float(event.get("totalShake") or 0.0),
+                }
+            )
+            return True
+        if event_type == "sensorStatus":
+            status = str(event.get("state") or "")
+            if status:
+                self._state["sensorStatus"] = status
+                return True
+        return False
+
+    def _payload(self) -> dict[str, Any]:
+        state = str(self._state["demoState"]).replace("_", " ")
+        duty = float(self._state["duty"])
+        elapsed = float(self._state["elapsed"])
+        duration = max(0.1, float(self._state["duration"]))
+        label = str(self._state["label"])
+        total = float(self._state["totalShake"])
+        confidence = float(self._state["confidence"])
+        lines = [
+            "Wendy Earthquake",
+            f"{state[:13]} {duty * 100:3.0f}%",
+            label[:22],
+            f"shake {total:.3f} conf {confidence * 100:2.0f}%",
+        ]
+        return {
+            "type": "earthquake",
+            "lines": lines,
+            "state": state,
+            "duty": round(duty, 3),
+            "elapsed": round(elapsed, 1),
+            "duration": round(duration, 1),
+            "progress": round(min(1.0, max(0.0, elapsed / duration)), 3),
+            "label": label,
+            "confidence": round(confidence, 3),
+            "totalShake": round(total, 4),
+            "sensorStatus": self._state["sensorStatus"],
+        }
+
+    def _write(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and now - self._last_write < 0.2:
+            return
+        if self._fd is None and now >= self._next_retry:
+            self._open()
+        if self._fd is None:
+            return
+        data = (json.dumps(self._payload(), separators=(",", ":")) + "\n").encode("utf-8")
+        try:
+            os.write(self._fd, data)
+            self._last_write = now
+        except OSError as exc:
+            print(f"lilygo display write failed: {exc}", flush=True)
+            self._close()
+            self._next_retry = now + 5.0
+
+    def _open(self) -> None:
+        try:
+            self._fd = open_serial(self.port, self.baud)
+            print(f"lilygo display connected on {self.port} @ {self.baud}", flush=True)
+        except Exception as exc:
+            print(f"lilygo display unavailable on {self.port}: {exc}", flush=True)
+            self._fd = None
+            self._next_retry = time.monotonic() + 5.0
+
+    def _close(self) -> None:
+        if self._fd is not None:
+            with contextlib.suppress(OSError):
+                os.close(self._fd)
+        self._fd = None
+
+
 FLOOR_LABELS = {
     "/dev/ttyUSB0": "Top Floor",
     "/dev/ttyUSB1": "Middle Floor",
@@ -1031,6 +1158,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-ble-devices", type=int, default=int(os.environ.get("MAX_BLE_DEVICES", "3")))
     parser.add_argument("--simulate-sensor", action="store_true", default=os.environ.get("SIMULATE_SENSOR") == "1")
     parser.add_argument("--dry-run", action="store_true", default=os.environ.get("MOTOR_DRY_RUN") == "1")
+    parser.add_argument("--lilygo-display-port", default=os.environ.get("LILYGO_DISPLAY_PORT", ""))
+    parser.add_argument("--lilygo-display-baud", type=int, default=int(os.environ.get("LILYGO_DISPLAY_BAUD", "115200")))
     return parser.parse_args()
 
 
@@ -1039,6 +1168,8 @@ def main() -> int:
     bus = EventBus()
     controller = DemoController(bus, dry_run=args.dry_run)
     classifier = SensorClassifier(bus, controller)
+    if args.lilygo_display_port:
+        LilyGoDisplay(bus, args.lilygo_display_port, args.lilygo_display_baud).start()
     ble_names = args.ble_name or os.environ.get("WIT_BLE_NAMES", "WTVB,WIT,WT").split(",")
     ble_addresses = args.ble_address or os.environ.get("WIT_BLE_ADDRESSES", "").split(",")
     ble_service_uuids = args.ble_service_uuid or os.environ.get(

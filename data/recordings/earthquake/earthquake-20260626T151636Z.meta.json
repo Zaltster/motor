@@ -1,0 +1,11 @@
+{
+  "sessionId": "earthquake-20260626T151636Z",
+  "label": "earthquake",
+  "baseUrl": "http://169.254.35.5:8000",
+  "startedAt": 1782486996.3876748,
+  "duration": 5.437357962780805,
+  "triggerDemo": true,
+  "demoResponse": null,
+  "notes": "dashboard Earthquake recording",
+  "source": "local_training_recorder"
+}
